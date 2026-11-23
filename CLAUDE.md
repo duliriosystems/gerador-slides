@@ -13,7 +13,7 @@ App de página única (`index.html`, HTML/JS puro, sem build) que gera vídeos d
 
 ## Publicar uma versão nova (sempre nesta ordem)
 
-1. Copiar o `index.html` atual para `versoes/gerador-slides-holyrics-vNN.html` (NN = a versão que está saindo de cena).
+1. A pasta `versoes/` guarda **só uma** versão de segurança (a anterior à atual). Apagar o arquivo que estiver lá e colocar o `index.html` atual como `versoes/gerador-slides-holyrics-vNN.html` (NN = a versão que está saindo de cena). Nunca acumular várias.
 2. Colocar o HTML novo como `index.html` (título, selo `vNN` no cabeçalho, "PEDIDO" e "DIAGNÓSTICO" já com o número novo).
 3. **Subir `VERSAO` em `sw.js`** (ex.: `'v45'`). É isso que faz os aparelhos abertos mostrarem "Nova versão disponível". Esquecer = ninguém é avisado (o app ainda atualiza ao recarregar).
 4. Commit direto na `main` (ou PR) — o Pages publica sozinho. Conferir que o endereço acima abre com a versão nova.

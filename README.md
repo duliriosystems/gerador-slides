@@ -15,11 +15,11 @@ App (um único arquivo HTML) que cria vídeos de letra de música animada — um
 | `index.html` | O app (versão atual). É o endereço acima. |
 | `sw.js` | Service worker: abre offline e avisa "Nova versão disponível". |
 | `manifest.webmanifest`, `icons/` | Dados para instalar como app, e ícones originais. |
-| `versoes/` | Todas as versões anteriores (`gerador-slides-holyrics-vNN.html`), cada uma funcionando sozinha. |
+| `versoes/` | Só a versão de segurança: a imediatamente anterior à atual (`gerador-slides-holyrics-vNN.html`), funcionando sozinha. |
 
 ## Publicar uma versão nova
 
-Veja o `CLAUDE.md`. Em resumo: guardar o `index.html` atual em `versoes/`, colocar o novo como `index.html`, subir o número da versão também em `sw.js` e fazer o commit na `main` — o GitHub Pages publica sozinho em ~1 minuto.
+Veja o `CLAUDE.md`. Em resumo: trocar o arquivo de `versoes/` pelo `index.html` atual (fica sempre só uma versão de segurança), colocar o novo como `index.html`, subir o número da versão também em `sw.js` e fazer o commit na `main` — o GitHub Pages publica sozinho em ~1 minuto.
 
 ## Licenças
 
