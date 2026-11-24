@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gerador de Slides Animados v45</title>
+<title>Gerador de Slides Animados v46</title>
 <meta name="theme-color" content="#0B0C10">
 <meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
@@ -261,7 +261,7 @@
     <div class="brand">
       <span class="dot"></span>
       <div>
-        <b>Gerador de Slides Animados</b> <span class="badge" style="vertical-align:middle;">v45</span>
+        <b>Gerador de Slides Animados</b> <span class="badge" style="vertical-align:middle;">v46</span>
         <small id="saveStatus">salvo ✓</small>
       </div>
     </div>
@@ -463,12 +463,14 @@
         <b style="font-size:.9rem;">Slides (<span id="slideCount">0</span>)</b>
         <div class="row">
           <button class="btn" id="btnSearchImageForSelected">🔍 Buscar imagem (<span id="selectedSlideCount">0</span> selecionado(s))</button>
+          <button class="btn btn-ghost undoBtn" type="button" disabled title="Desfaz o último passo (volta um de cada vez)">↶ Desfazer</button>
           <button class="btn" id="btnAddSlide">+ Adicionar slide</button>
         </div>
       </div>
       <div class="stack" id="slidesEditorList"></div>
 
       <div class="row" style="justify-content:flex-end;border-top:1px solid var(--line);padding-top:1rem;">
+        <button class="btn undoBtn" type="button" disabled style="margin-right:auto;" title="Desfaz o último passo (volta um de cada vez)">↶ Desfazer</button>
         <button class="btn btn-ghost" id="btnCancelSong">Cancelar</button>
         <button class="btn btn-primary" id="btnSaveSong">Salvar música</button>
       </div>
@@ -791,7 +793,7 @@
       <summary>Slides de 2 versos: juntar e separar</summary>
       <div class="helpBody">
         <p>Ao dividir a letra, cada slide recebe <b>2 versos</b> (escolha 1 ou 3 ao lado do botão <b>Dividir em slides</b>). Estrofes diferentes nunca se misturam: se uma estrofe tem 3 versos, sobra 1 sozinho. Estrofes repetidas (refrão) entram só uma vez — no Holyrics você volta ao slide anterior; desmarque a opção se quiser todas as repetições.</p>
-        <p>Para ajustar à mão: o botão <b>⤓</b> no cabeçalho do slide junta ele com o próximo; o botão <b>✂</b> numa linha começa um novo slide a partir dela. Linhas de marcação como "[Refrão]" ou "Verso 1" sozinhas são descartadas automaticamente.</p>
+        <p>Para ajustar à mão: o botão <b>⤓</b> no cabeçalho do slide junta ele com o próximo; o botão <b>✂</b> numa linha começa um novo slide a partir dela (o slide novo herda fundo, estilo Energia/Calmo, tamanho e posição do original). Se errar, o botão <b>↶ Desfazer</b> (no alto da lista e na barra de baixo; no PC também Ctrl+Z fora dos campos de texto) volta um passo de cada vez, até você salvar ou cancelar. Linhas de marcação como "[Refrão]" ou "Verso 1" sozinhas são descartadas automaticamente.</p>
       </div>
     </details>
 
@@ -2515,6 +2517,7 @@ function openSongEditor(song){
   refreshStyleSelects();
   renderSongBgControl();
   renderSlidesEditor();
+  undoReset();          /* v46: histórico do ↶ Desfazer começa vazio a cada música aberta */
   showView('songEditor');
 }
 function refreshStyleSelects(){
@@ -2654,6 +2657,7 @@ function removeSelectionIndex(removedIdx){
   selectedSlideIndices = updated;
 }
 function renderSlidesEditor(){
+  undoCheckpoint();     /* v46: registra o passo anterior pro ↶ Desfazer */
   document.getElementById('slideCount').textContent = editingSong.slides.length;
   document.getElementById('selectedSlideCount').textContent = selectedSlideIndices.size;
   var wrap = document.getElementById('slidesEditorList');
@@ -2750,6 +2754,7 @@ function renderSlidesEditor(){
         var before = fullText.slice(0, cursorPos).trim();
         var after = fullText.slice(cursorPos).trim();
         var currentStyle = sl.lines[li].style;
+        undoCheckpoint();     /* v46: o que foi digitado até aqui vira um passo; a divisão da linha, outro */
         sl.lines[li].text = before;
         var newLine = {text: after, style: currentStyle};
         if(sl.lines[li].sz) newLine.sz = Object.assign({}, sl.lines[li].sz);
@@ -2802,7 +2807,11 @@ function renderSlidesEditor(){
       btn.addEventListener('click', function(){
         var li = parseInt(btn.dataset.lineIdx, 10);
         var tail = sl.lines.splice(li);
-        editingSong.slides.splice(idx + 1, 0, { id: uid(), lines: tail, bg: sl.bg ? JSON.parse(JSON.stringify(sl.bg)) : null, anim: sl.anim });
+        /* v46: o slide novo herda TUDO do original (estilo Energia/Calmo, tamanho, posição, velocidade, fundo,
+           animação, entrada das linhas) — só o id e as linhas mudam. Antes só levava fundo e animação. */
+        var novo = JSON.parse(JSON.stringify(sl));
+        novo.id = uid(); novo.lines = tail;
+        editingSong.slides.splice(idx + 1, 0, novo);
         selectedSlideIndices = new Set();
         renderSlidesEditor();
       });
@@ -3596,6 +3605,81 @@ document.getElementById('btnAddSlide').addEventListener('click', function(){
   renderSlidesEditor();
 });
 document.getElementById('btnCancelSong').addEventListener('click', function(){ showView('songs'); });
+
+/* =========================================================================
+   v46 — DESFAZER PASSO A PASSO no editor da música.
+   Guarda uma "foto" da música a cada passo (clique, troca de campo, mudança de slide) e volta uma por vez.
+   Textos grandes (imagens/vídeos de fundo em data URL) entram na foto só como referência, pra não pesar na memória.
+   ========================================================================= */
+var undoStack = [], undoLast = null, undoBlobs = [], undoBlobIds = new Map(), UNDO_MAX = 60;
+function undoSnap(){
+  return JSON.stringify(editingSong, function(k, v){
+    if(typeof v === 'string' && v.length > 3000){
+      var id = undoBlobIds.get(v);
+      if(id === undefined){ id = undoBlobs.length; undoBlobs.push(v); undoBlobIds.set(v, id); }
+      return '\u0001B' + id;
+    }
+    return v;
+  });
+}
+function undoParse(snap){
+  return JSON.parse(snap, function(k, v){
+    if(typeof v === 'string' && v.charCodeAt(0) === 1 && v.charAt(1) === 'B') return undoBlobs[parseInt(v.slice(2), 10)];
+    return v;
+  });
+}
+function undoUpdateBtn(){
+  document.querySelectorAll('.undoBtn').forEach(function(b){
+    b.disabled = undoStack.length === 0;
+    b.textContent = undoStack.length ? '↶ Desfazer (' + undoStack.length + ')' : '↶ Desfazer';
+  });
+}
+function undoReset(){
+  undoStack = []; undoBlobs = []; undoBlobIds = new Map();
+  undoLast = editingSong ? undoSnap() : null;
+  undoUpdateBtn();
+}
+function undoCheckpoint(){
+  if(!editingSong || !undoBlobIds) return;
+  var cur = undoSnap();
+  if(undoLast === null){ undoLast = cur; return; }
+  if(cur === undoLast) return;
+  undoStack.push(undoLast);
+  if(undoStack.length > UNDO_MAX) undoStack.shift();
+  undoLast = cur;
+  undoUpdateBtn();
+}
+function undoStep(){
+  undoCheckpoint();                 /* pega qualquer mudança que ainda não virou passo */
+  if(!undoStack.length){ toast('Nada para desfazer.'); return; }
+  var prev = undoStack.pop();
+  editingSong = undoParse(prev);
+  undoLast = prev;
+  selectedSlideIndices = new Set();
+  refreshStyleSelects();
+  renderSongBgControl();
+  renderSlidesEditor();
+  undoUpdateBtn();
+  toast('Desfeito.');
+}
+(function(){
+  var view = document.getElementById('view-songEditor');
+  view.addEventListener('click', function(e){
+    if(e.target.closest && e.target.closest('.undoBtn')) return;
+    undoCheckpoint();               /* o clique já rodou o handler do botão: se mudou a música, vira um passo */
+  });
+  view.addEventListener('change', function(){ undoCheckpoint(); });
+  document.querySelectorAll('.undoBtn').forEach(function(b){ b.addEventListener('click', undoStep); });
+  document.addEventListener('keydown', function(e){
+    if(activeView !== 'songEditor') return;
+    if(!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || (e.key !== 'z' && e.key !== 'Z')) return;
+    var t = e.target, tag = t && t.tagName;
+    /* dentro de um campo de texto o Ctrl+Z continua sendo o do próprio campo (desfaz a digitação) */
+    if(tag === 'TEXTAREA' || tag === 'SELECT' || (tag === 'INPUT' && !/^(checkbox|radio|button|range|color|file)$/.test(t.type))) return;
+    e.preventDefault();
+    undoStep();
+  });
+})();
 document.getElementById('btnSaveSong').addEventListener('click', function(){
   if(!requireTitle()) return;
   editingSong.title = document.getElementById('songTitleInput').value.trim() || 'Sem título';
@@ -3735,7 +3819,7 @@ async function runDiagnostic(setStatus){
   var L = [], wait = function(ms){ return new Promise(function(r){ setTimeout(r, ms || 0); }); };
   function add(x){ L.push(x); }
   var W = 1920, H = 1200, FPS = 24, HOLD = 16;
-  add('=== DIAGNÓSTICO DO PC — Gerador de Slides v45 ===');
+  add('=== DIAGNÓSTICO DO PC — Gerador de Slides v46 ===');
   add('Data: ' + new Date().toLocaleString('pt-BR'));
   var mc = /Chrome\/([\d.]+)/.exec(navigator.userAgent);
   add('Navegador: ' + (mc ? 'Chrome ' + mc[1] : navigator.userAgent));
@@ -5591,7 +5675,7 @@ function claudeBgLabel(bg){
 function buildClaudeRequest(song, userNote){
   var L = [];
   var id = claudeRequestId(song);
-  L.push('=== PEDIDO DO GERADOR DE SLIDES (app v45) ===');
+  L.push('=== PEDIDO DO GERADOR DE SLIDES (app v46) ===');
   L.push('Claude, este pedido vem do app "Gerador de Slides Animados" (vídeos de letra animada para importar no Holyrics; projeto do Dulirio, ministério de louvor). Responda sempre em português do Brasil.');
   L.push('');
   L.push('O QUE FAZER (padrão: o usuário NÃO precisa escrever nada)');
@@ -6058,7 +6142,7 @@ function songFileObject(song){
   /* só a música (nunca a chave do Vagalume nem as outras músicas) */
   var copy = JSON.parse(JSON.stringify(song));
   delete copy.exportSig;   /* v45: "o que já foi gerado" vale só neste aparelho */
-  return { formato: SONG_FILE_FORMAT, versao: 1, app: 'v45', exportadoEm: new Date().toISOString(), musica: copy };
+  return { formato: SONG_FILE_FORMAT, versao: 1, app: 'v46', exportadoEm: new Date().toISOString(), musica: copy };
 }
 function songFileBase(song){ return 'musica-' + folderNameFromTitle(song.title || 'Sem título'); }
 function parseSongFile(data){
