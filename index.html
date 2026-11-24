@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gerador de Slides Animados v46</title>
+<title>Gerador de Slides Animados v47</title>
 <meta name="theme-color" content="#0B0C10">
 <meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
@@ -113,6 +113,14 @@
   .btn-ghost:hover{color:var(--text);background:var(--panel-2);}
   .btn-lg{padding:.85rem 1.1rem;font-size:.95rem;border-radius:10px;}
   .btn[disabled]{opacity:.4;cursor:not-allowed;pointer-events:none;}
+  /* v47: ↶ Desfazer flutuante — fica fixo no canto da tela enquanto a música está aberta no editor (a view some com display:none, o botão vai junto) */
+  .undoFab{position:fixed;left:max(14px, env(safe-area-inset-left));bottom:max(16px, env(safe-area-inset-bottom));z-index:90;
+    background:var(--panel-3);border:1px solid var(--gold);color:var(--text);border-radius:999px;padding:.7rem 1.05rem;font-size:.92rem;
+    box-shadow:0 6px 24px rgba(0,0,0,.55);}
+  .undoFab:hover{background:var(--panel-2);}
+  .undoFab[disabled]{opacity:.55;border-color:var(--line);}
+  #view-songEditor{padding-bottom:5.5rem;}
+  body.inEditor .toast{bottom:78px;}
 
   /* list items */
   .listItem{
@@ -210,6 +218,7 @@
   .cueTag.ok{color:#7fd6a0;}
   .cueTag.chg{color:#f2c06b;}
   .cueTag.new{color:#8fb8ff;}
+  .cueTag.pst{color:#b6bfce;}
 
   .previewCanvasWrap{border:1px solid var(--line);border-radius:12px;background:#000;min-height:120px;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:.4rem;}
   .previewCanvasWrap canvas{max-width:100%;border-radius:8px;display:block;}
@@ -261,7 +270,7 @@
     <div class="brand">
       <span class="dot"></span>
       <div>
-        <b>Gerador de Slides Animados</b> <span class="badge" style="vertical-align:middle;">v46</span>
+        <b>Gerador de Slides Animados</b> <span class="badge" style="vertical-align:middle;">v47</span>
         <small id="saveStatus">salvo ✓</small>
       </div>
     </div>
@@ -463,18 +472,17 @@
         <b style="font-size:.9rem;">Slides (<span id="slideCount">0</span>)</b>
         <div class="row">
           <button class="btn" id="btnSearchImageForSelected">🔍 Buscar imagem (<span id="selectedSlideCount">0</span> selecionado(s))</button>
-          <button class="btn btn-ghost undoBtn" type="button" disabled title="Desfaz o último passo (volta um de cada vez)">↶ Desfazer</button>
           <button class="btn" id="btnAddSlide">+ Adicionar slide</button>
         </div>
       </div>
       <div class="stack" id="slidesEditorList"></div>
 
       <div class="row" style="justify-content:flex-end;border-top:1px solid var(--line);padding-top:1rem;">
-        <button class="btn undoBtn" type="button" disabled style="margin-right:auto;" title="Desfaz o último passo (volta um de cada vez)">↶ Desfazer</button>
         <button class="btn btn-ghost" id="btnCancelSong">Cancelar</button>
         <button class="btn btn-primary" id="btnSaveSong">Salvar música</button>
       </div>
     </div>
+    <button class="btn undoBtn undoFab" id="btnUndoFab" type="button" disabled title="Desfaz o último passo (volta um de cada vez) — fica sempre aqui, acompanha a tela">↶ Desfazer</button>
   </section>
 
   <!-- ---------- EXPORT VIEW ---------- -->
@@ -793,7 +801,7 @@
       <summary>Slides de 2 versos: juntar e separar</summary>
       <div class="helpBody">
         <p>Ao dividir a letra, cada slide recebe <b>2 versos</b> (escolha 1 ou 3 ao lado do botão <b>Dividir em slides</b>). Estrofes diferentes nunca se misturam: se uma estrofe tem 3 versos, sobra 1 sozinho. Estrofes repetidas (refrão) entram só uma vez — no Holyrics você volta ao slide anterior; desmarque a opção se quiser todas as repetições.</p>
-        <p>Para ajustar à mão: o botão <b>⤓</b> no cabeçalho do slide junta ele com o próximo; o botão <b>✂</b> numa linha começa um novo slide a partir dela (o slide novo herda fundo, estilo Energia/Calmo, tamanho e posição do original). Se errar, o botão <b>↶ Desfazer</b> (no alto da lista e na barra de baixo; no PC também Ctrl+Z fora dos campos de texto) volta um passo de cada vez, até você salvar ou cancelar. Linhas de marcação como "[Refrão]" ou "Verso 1" sozinhas são descartadas automaticamente.</p>
+        <p>Para ajustar à mão: o botão <b>⤓</b> no cabeçalho do slide junta ele com o próximo; o botão <b>✂</b> numa linha começa um novo slide a partir dela (o slide novo herda fundo, estilo Energia/Calmo, tamanho e posição do original). Se errar, o botão <b>↶ Desfazer</b> (flutuante: fica fixo no canto de baixo da tela enquanto você edita a música, sem precisar rolar; no PC também Ctrl+Z fora dos campos de texto) volta um passo de cada vez, até você salvar ou cancelar. Linhas de marcação como "[Refrão]" ou "Verso 1" sozinhas são descartadas automaticamente.</p>
       </div>
     </details>
 
@@ -2285,7 +2293,8 @@ function showView(name){
   document.querySelectorAll('nav.tabs button').forEach(function(b){
     b.classList.toggle('active', b.dataset.view === name);
   });
-  if(name === 'export'){ refreshExportPickers(); renderExportBgNote(); }
+  document.body.classList.toggle('inEditor', name === 'songEditor');     /* v47: sobe o aviso (toast) pra não ficar embaixo do ↶ flutuante */
+  if(name === 'export'){ refreshExportPickers(); renderExportBgNote(); fsKnown.folder = null; try{ renderExportCueList(); }catch(e){} }
 }
 document.querySelectorAll('nav.tabs button').forEach(function(b){
   b.addEventListener('click', function(){ showView(b.dataset.view); });
@@ -3819,7 +3828,7 @@ async function runDiagnostic(setStatus){
   var L = [], wait = function(ms){ return new Promise(function(r){ setTimeout(r, ms || 0); }); };
   function add(x){ L.push(x); }
   var W = 1920, H = 1200, FPS = 24, HOLD = 16;
-  add('=== DIAGNÓSTICO DO PC — Gerador de Slides v46 ===');
+  add('=== DIAGNÓSTICO DO PC — Gerador de Slides v47 ===');
   add('Data: ' + new Date().toLocaleString('pt-BR'));
   var mc = /Chrome\/([\d.]+)/.exec(navigator.userAgent);
   add('Navegador: ' + (mc ? 'Chrome ' + mc[1] : navigator.userAgent));
@@ -4149,20 +4158,50 @@ function jobSignature(job, rp, le, name){
   var raw = JSON.stringify(copy, sigReplacer) + '|' + rp.res + '|' + rp.fps + '|' + rp.durationSec + '|' + rp.speed + '|' + (le.seq ? 's' + le.pauseSec : 'j') + '|' + name;
   return hashStr(raw).toString(36) + '.' + raw.length.toString(36);
 }
+/* v47: arquivos .mp4 que já estão na subpasta da música (lidos 1 vez, sem pedir permissão nova; se o Chrome não deixar, simplesmente não marca nada) */
+var fsKnown = { folder: null, names: null, loading: false };
+async function fsListSongFiles(folderName){
+  if(!FS_OK || !saveDir.handle) return null;
+  try{
+    var okPerm = false;
+    for(var m of ['readwrite', 'read']){ try{ if(await saveDir.handle.queryPermission({mode: m}) === 'granted'){ okPerm = true; break; } }catch(e){} }
+    if(!okPerm) return null;
+    var dir = await saveDir.handle.getDirectoryHandle(folderName, {create: false});
+    var names = {};
+    for await (var pair of dir.entries()){ if(pair[1].kind === 'file' && /\.mp4$/i.test(pair[0])) names[pair[0]] = true; }
+    return names;
+  }catch(e){ return null; }       /* pasta da música ainda não existe, sem permissão, etc. */
+}
+function fsKnownEnsure(song){
+  if(!song || !FS_OK || !saveDir.handle || fsKnown.loading) return;
+  var fo = folderNameFromTitle(song.title);
+  if(fsKnown.folder === fo) return;
+  fsKnown.loading = true;
+  fsListSongFiles(fo).then(function(names){
+    fsKnown.folder = fo; fsKnown.names = names; fsKnown.loading = false;
+    if(names && Object.keys(names).length && activeView === 'export'){ try{ renderExportCueList(); }catch(e){} }
+  }, function(){ fsKnown.folder = fo; fsKnown.names = null; fsKnown.loading = false; });
+}
 function exportMarks(){
   var song = songOfProgram();
-  if(!song || !song.exportSig || !song.exportSig.slides) return null;
+  if(!song) return null;
+  var known = (fsKnown.folder && fsKnown.folder === folderNameFromTitle(song.title)) ? fsKnown.names : null;
+  var hasKnown = !!(known && Object.keys(known).length);
+  var hasSig = !!(song.exportSig && song.exportSig.slides);
+  if(!hasSig && !hasKnown) return null;
   var cj = collectExportJobs();
   if(cj.bgOnly) return null;
-  var rp = exportRenderParams(), le = lineEntryFromControls(), st = song.exportSig.slides, out = {};
+  var rp = exportRenderParams(), le = lineEntryFromControls(), st = hasSig ? song.exportSig.slides : {}, out = {};
   cj.jobs.forEach(function(j){
-    var k = jobKey(j), sig = jobSignature(j, rp, lineEntryOfItem(j, le), exportFileName(j, 'mp4', cj.numOffset));
-    out[k] = st[k] === undefined ? 'novo' : (st[k] === sig ? 'ok' : 'mudou');
+    var k = jobKey(j), fname = exportFileName(j, 'mp4', cj.numOffset);
+    if(st[k] === undefined){ out[k] = (hasKnown && known[fname]) ? 'pasta' : 'novo'; return; }
+    out[k] = st[k] === jobSignature(j, rp, lineEntryOfItem(j, le), fname) ? 'ok' : 'mudou';
   });
   return out;
 }
 function markTag(m){
-  return m === 'ok' ? '<span class="cueTag ok">✓ gerado</span>' : m === 'mudou' ? '<span class="cueTag chg">✏ alterado</span>' : m === 'novo' ? '<span class="cueTag new">🆕 novo</span>' : '';
+  return m === 'ok' ? '<span class="cueTag ok">✓ gerado</span>' : m === 'mudou' ? '<span class="cueTag chg">✏ alterado</span>' : m === 'novo' ? '<span class="cueTag new">🆕 novo</span>' :
+    m === 'pasta' ? '<span class="cueTag pst" title="Já existe um arquivo com esse nome na pasta (gerado antes do app guardar o registro de alterações). Se você mexeu nesse slide, marque ele à mão.">📁 já na pasta</span>' : '';
 }
 
 /* ---- estimativa de tempo: aprende com o tempo real das últimas gerações neste PC ---- */
@@ -4238,8 +4277,9 @@ function renderExportCueList(){
     return;
   }
   if(exportSelSong !== program[0].songId){ exportSelSong = program[0].songId; exportSel = {}; exportSelBlank = true; }
+  fsKnownEnsure(songOfProgram());
   var marks = exportMarks();
-  var nChanged = marks ? Object.keys(marks).filter(function(k){ return marks[k] !== 'ok'; }).length : 0;
+  var nChanged = marks ? Object.keys(marks).filter(function(k){ return marks[k] !== 'ok' && marks[k] !== 'pasta'; }).length : 0;
   var scrollTop = wrap.scrollTop;
   var tools = '<div class="cueTools"><b style="font-size:.8rem;">Slides a gerar</b>' +
     '<button class="btn" type="button" data-sel="all">Todos</button>' +
@@ -4293,8 +4333,8 @@ function renderExportCueList(){
     if(how === 'none'){ program.forEach(function(it){ exportSel[it.slideId] = false; }); exportSelBlank = false; }
     else if(how === 'changed'){
       var mk = exportMarks() || {};
-      program.forEach(function(it){ if(mk[it.slideId] === 'ok') exportSel[it.slideId] = false; });
-      exportSelBlank = mk.__blank !== 'ok';
+      program.forEach(function(it){ if(mk[it.slideId] === 'ok' || mk[it.slideId] === 'pasta') exportSel[it.slideId] = false; });
+      exportSelBlank = mk.__blank !== 'ok' && mk.__blank !== 'pasta';
     } else exportSelBlank = true;
     renderExportCueList();
   });
@@ -5147,7 +5187,7 @@ document.getElementById('btnPickExportFolder').addEventListener('click', async f
   if(!FS_OK) return;
   try{
     var h = await window.showDirectoryPicker({id:'slidesprontos', mode:'readwrite', startIn:'documents'});
-    saveDir.handle = h; saveDir.perm = 'granted';
+    saveDir.handle = h; saveDir.perm = 'granted'; fsKnown.folder = null;
     try{ await dbSet('saveDirHandle', h); }catch(e){ toast('Pasta escolhida, mas não consegui lembrar dela pra próxima vez.'); }
     fsRender();
     toast('Pasta escolhida: ' + h.name);
@@ -5390,6 +5430,7 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
   setExportProgress(0,0,'');
   document.getElementById('exportPreviewCanvasWrap').innerHTML = '<span style="color:var(--muted);font-size:.85rem;">Aparece aqui durante a geração</span>';
   genBtn.disabled = false;
+  fsKnown.folder = null;                       /* v47: depois de gerar, a pasta mudou — relê */
   try{ renderExportCueList(); }catch(e){}      /* v45: atualiza as marcas ✓ gerado */
   if(!wasCancelled && exportResults.some(function(r){ return r.saved; })){
     try{ fsStale = await fsFindStale(); }catch(e){ fsStale = []; }
@@ -5675,7 +5716,7 @@ function claudeBgLabel(bg){
 function buildClaudeRequest(song, userNote){
   var L = [];
   var id = claudeRequestId(song);
-  L.push('=== PEDIDO DO GERADOR DE SLIDES (app v46) ===');
+  L.push('=== PEDIDO DO GERADOR DE SLIDES (app v47) ===');
   L.push('Claude, este pedido vem do app "Gerador de Slides Animados" (vídeos de letra animada para importar no Holyrics; projeto do Dulirio, ministério de louvor). Responda sempre em português do Brasil.');
   L.push('');
   L.push('O QUE FAZER (padrão: o usuário NÃO precisa escrever nada)');
@@ -6142,7 +6183,7 @@ function songFileObject(song){
   /* só a música (nunca a chave do Vagalume nem as outras músicas) */
   var copy = JSON.parse(JSON.stringify(song));
   delete copy.exportSig;   /* v45: "o que já foi gerado" vale só neste aparelho */
-  return { formato: SONG_FILE_FORMAT, versao: 1, app: 'v46', exportadoEm: new Date().toISOString(), musica: copy };
+  return { formato: SONG_FILE_FORMAT, versao: 1, app: 'v47', exportadoEm: new Date().toISOString(), musica: copy };
 }
 function songFileBase(song){ return 'musica-' + folderNameFromTitle(song.title || 'Sem título'); }
 function parseSongFile(data){
