@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gerador de Slides Animados v44</title>
+<title>Gerador de Slides Animados v45</title>
 <meta name="theme-color" content="#0B0C10">
 <meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
@@ -197,6 +197,19 @@
   .cueItem{display:flex;gap:.6rem;align-items:flex-start;padding:.55rem .7rem;border-bottom:1px solid var(--line);}
   .cueItem .cueNum{font-family:var(--font-mono);color:var(--muted);font-size:.75rem;padding-top:.1rem;}
   .cueItem .cueTxt{font-size:.83rem;color:var(--text);line-height:1.3;}
+  /* v45: escolher slides, marcas de alterado, entrada por slide */
+  .cueTools{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;padding:.5rem .7rem;border-bottom:1px solid var(--line);background:var(--panel-2);position:sticky;top:0;z-index:2;}
+  .cueTools .btn{padding:.25rem .65rem;font-size:.78rem;}
+  label.cueItem{cursor:pointer;}
+  .cueItem.off .cueTxt{opacity:.4;}
+  .cueSel{width:1.15rem;height:1.15rem;margin:.1rem 0 0;accent-color:var(--gold);flex:0 0 auto;}
+  .cueMain{flex:1 1 auto;min-width:0;}
+  .cueMeta{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;margin-top:.35rem;}
+  .cueEntry{font-size:.74rem;padding:.15rem .3rem;max-width:100%;}
+  .cueTag{font-size:.7rem;font-weight:700;border-radius:999px;padding:.05rem .5rem;border:1px solid var(--line);}
+  .cueTag.ok{color:#7fd6a0;}
+  .cueTag.chg{color:#f2c06b;}
+  .cueTag.new{color:#8fb8ff;}
 
   .previewCanvasWrap{border:1px solid var(--line);border-radius:12px;background:#000;min-height:120px;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:.4rem;}
   .previewCanvasWrap canvas{max-width:100%;border-radius:8px;display:block;}
@@ -248,7 +261,7 @@
     <div class="brand">
       <span class="dot"></span>
       <div>
-        <b>Gerador de Slides Animados</b> <span class="badge" style="vertical-align:middle;">v44</span>
+        <b>Gerador de Slides Animados</b> <span class="badge" style="vertical-align:middle;">v45</span>
         <small id="saveStatus">salvo ✓</small>
       </div>
     </div>
@@ -511,6 +524,15 @@
           <option value="0.65">Rápida</option>
         </select>
       </label>
+      <label class="field">Entrada das linhas
+        <select id="exportLineEntry">
+          <option value="junto" selected>Junto (como sempre foi)</option>
+          <option value="seq">Em seguida (uma depois da outra)</option>
+        </select>
+      </label>
+      <label class="field" id="exportLinePauseField" style="display:none;">Pausa entre as linhas (s)
+        <input type="number" id="exportLinePause" value="0.8" min="0" max="10" step="0.1">
+      </label>
       <label class="field" style="flex-direction:row;align-items:center;gap:.4rem;">
         <input type="checkbox" id="exportLoop">
         Loop contínuo (sem entrada, repete sem emenda)
@@ -546,6 +568,8 @@
         </select>
       </label>
       <button class="btn btn-primary btn-lg" id="btnGenerate" style="align-self:flex-end;">▶ Gerar vídeos</button>
+      <span class="statusLine" id="exportEstimate" style="margin:0;flex:1 1 100%;"></span>
+      <span class="statusLine" id="exportLineEntryNote" style="margin:0;flex:1 1 100%;display:none;"></span>
     </div>
 
     <div class="card" id="exportFolderCard" style="margin-bottom:1rem;">
@@ -3631,7 +3655,7 @@ function buildProgramFromSong(song){
     var item = { slideId: slide.id, songTitle: song.title, songId: song.id, lines: expandAllLines(slide.lines),
       bg: style.bg, anim: style.anim, boldFont: style.boldFont, scriptFont: style.scriptFont, textColor: lightAdjust(style.bg, style.textColor).color, lightBg: sceneIsLight(style.bg), ghostWord: ghostWordOf(song), isFirstOfSong: i===0,
       sceneLoops: (SPEED_LEVELS[style.vel] || SPEED_LEVELS.slow).loops,
-      layoutMode: song.layoutMode === 'solto' ? 'solto' : 'reto', txtScale: slide.txtScale || 1, txtShift: (typeof slide.txtShift === 'number') ? slide.txtShift : null, energy: slideIsEnergy(slide) };
+      layoutMode: song.layoutMode === 'solto' ? 'solto' : 'reto', txtScale: slide.txtScale || 1, txtShift: (typeof slide.txtShift === 'number') ? slide.txtShift : null, energy: slideIsEnergy(slide), lineEntry: slide.lineEntry || null };
     if(slide.semLetra){ item.noText = true; item.instrumental = true; }
     prev = {bg: style.bg, vel: style.vel};
     if(style.bg && style.bg.type === 'colorflow'){
@@ -3649,6 +3673,7 @@ document.getElementById('btnLoadProgram').addEventListener('click', function(){
   if(!song) return;
   var flat = buildProgramFromSong(song);
   program = flat;
+  exportSel = {}; exportSelBlank = true;     /* v45: carregar de novo = todos os slides marcados */
   renderExportCueList();
   clearExportResults();
   toast('Programa carregado (' + program.length + ' slide(s)).');
@@ -3710,13 +3735,13 @@ async function runDiagnostic(setStatus){
   var L = [], wait = function(ms){ return new Promise(function(r){ setTimeout(r, ms || 0); }); };
   function add(x){ L.push(x); }
   var W = 1920, H = 1200, FPS = 24, HOLD = 16;
-  add('=== DIAGNÓSTICO DO PC — Gerador de Slides v44 ===');
+  add('=== DIAGNÓSTICO DO PC — Gerador de Slides v45 ===');
   add('Data: ' + new Date().toLocaleString('pt-BR'));
   var mc = /Chrome\/([\d.]+)/.exec(navigator.userAgent);
   add('Navegador: ' + (mc ? 'Chrome ' + mc[1] : navigator.userAgent));
   var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '?';
   add('Sistema: ' + plat + ' · UA: ' + navigator.userAgent.replace(/\s+/g, ' ').slice(0, 140));
-  add('Processador: ' + (navigator.hardwareConcurrency || '?') + ' núcleos · Memória (aprox.): ' + (navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '?'));
+  add('Processador: ' + (navigator.hardwareConcurrency || '?') + ' núcleos · Memória (aprox.): ' + (navigator.deviceMemory ? (navigator.deviceMemory >= 8 ? '8 GB ou mais (o Chrome não mostra acima de 8)' : navigator.deviceMemory + ' GB') : '?'));
   add('Tela: ' + screen.width + '×' + screen.height + ' (escala ' + (window.devicePixelRatio || 1) + ')');
   if(performance.memory) add('Memória desta aba: ' + Math.round(performance.memory.usedJSHeapSize / 1048576) + ' MB usados de ' + Math.round(performance.memory.jsHeapSizeLimit / 1048576) + ' MB (limite)');
   add('');
@@ -3885,6 +3910,8 @@ function renderExportBgNote(){
   var id = document.getElementById('exportSourcePick').value;
   var song = id ? findSong(id) : null;
   applyExportCfgFromSong(song);
+  applyLineEntryToControls(song);
+  renderExportCueList();
   if(!song){ el.textContent = ''; return; }
   el.innerHTML = '<b>Fundo desta música:</b> ' + esc(bgLabelText(song.defaultBg)) + (song.bgNote ? '<br>🎨 ' + esc(song.bgNote) : '') +
     '<br><span style="font-size:.74rem;">Para trocar à mão: aba Músicas → Editar → Fundo.</span>';
@@ -3901,22 +3928,297 @@ document.getElementById('btnExportSuggestBg').addEventListener('click', function
   renderExportCueList(); clearExportResults(); renderExportBgNote();
   toast('Fundo trocado: ' + sug.label + '.');
 });
+/* =========================================================================
+   v45 — ENTRADA DAS LINHAS (junto / em seguida), GERAR SÓ OS SLIDES ESCOLHIDOS,
+   MARCAS DE ALTERADO E ESTIMATIVA DE TEMPO
+   ========================================================================= */
+var LINE_PAUSE_DEFAULT = 0.8;
+var exportSel = {};              /* slideId -> false quando desmarcado (ausente = marcado) */
+var exportSelBlank = true;       /* o slide "00 sem letra" do início */
+var exportSelSong = '';
+
+function songOfProgram(){ return program.length ? findSong(program[0].songId) : null; }
+
+/* ---- entrada das linhas: da música (controles da aba) e, se tiver, a do slide (vale mais) ---- */
+function lineEntryFromControls(){
+  var seq = document.getElementById('exportLineEntry').value === 'seq';
+  var p = parseFloat(document.getElementById('exportLinePause').value);
+  if(!(p >= 0)) p = LINE_PAUSE_DEFAULT;
+  return { seq: seq, pauseSec: Math.min(10, p) };
+}
+function lineEntryOfItem(item, base){
+  var o = item && item.lineEntry;
+  if(o && (o.mode === 'seq' || o.mode === 'junto')){
+    var p = (typeof o.pauseSec === 'number' && o.pauseSec >= 0) ? o.pauseSec : base.pauseSec;
+    return { seq: o.mode === 'seq', pauseSec: Math.min(10, p) };
+  }
+  return base;
+}
+function applyLineEntryToControls(song){
+  var le = song && song.lineEntry;
+  document.getElementById('exportLineEntry').value = (le && le.mode === 'seq') ? 'seq' : 'junto';
+  document.getElementById('exportLinePause').value = String((le && typeof le.pauseSec === 'number') ? le.pauseSec : LINE_PAUSE_DEFAULT);
+}
+function saveLineEntryToSong(){
+  var id = document.getElementById('exportSourcePick').value;
+  var song = id ? findSong(id) : null;
+  if(song){
+    var le = lineEntryFromControls();
+    song.lineEntry = { mode: le.seq ? 'seq' : 'junto', pauseSec: le.pauseSec };
+    scheduleSave();
+  }
+  renderExportCueList();
+}
+function itemAnimEndMs(item, le, speed){
+  var lines = (item.lines || []).filter(function(l){ return l && l.text; });
+  if(item.noText || !lines.length) return 0;
+  var spm = (item.energy && item.layoutMode !== 'solto') ? speed * LAYOUT_STYLE.energySpeedFactor : speed;
+  return totalDurationMsV2(item.anim, lines, {holdSec: 0, staggerMs: STAGGER_MS * speed, speedMult: spm, seq: le.seq, pauseMs: Math.round(le.pauseSec * 1000)});
+}
+function exportRenderParams(){
+  var res = document.getElementById('exportRes').value, rp = res.split('x');
+  return { res: res, width: parseInt(rp[0], 10), height: parseInt(rp[1], 10),
+    fps: parseInt(document.getElementById('exportFps').value, 10) || 24,
+    durationSec: parseFloat(document.getElementById('exportHold').value) || 16,
+    speed: parseFloat(document.getElementById('exportSpeed').value) || 1,
+    scale: parseFloat(document.getElementById('exportSceneQuality').value) || 1 };
+}
+function renderLineEntryUi(){
+  var le = lineEntryFromControls();
+  document.getElementById('exportLinePauseField').style.display = le.seq ? '' : 'none';
+  var note = document.getElementById('exportLineEntryNote');
+  if(!note) return;
+  var anySeq = le.seq || program.some(function(it){ return it.lineEntry && it.lineEntry.mode === 'seq'; });
+  if(!anySeq || !program.length){ note.style.display = 'none'; note.textContent = ''; return; }
+  var rp = exportRenderParams(), worst = 0, wi = -1;
+  program.forEach(function(it, i){ var e = itemAnimEndMs(it, lineEntryOfItem(it, le), rp.speed); if(e > worst){ worst = e; wi = i; } });
+  var secs = (Math.round(worst / 100) / 10).toString().replace('.', ',');
+  note.style.display = '';
+  note.textContent = '↳ Entrada em seguida: o slide mais comprido (Q' + (wi + 1) + ') leva ~' + secs + ' s para entrar inteiro' +
+    (worst / 1000 + 1.5 > rp.durationSec ? ' — passa do tempo do vídeo (' + rp.durationSec + ' s), então esse vídeo se estica sozinho.' : '. Cabe no tempo do vídeo (' + rp.durationSec + ' s).');
+}
+
+/* ---- lista de vídeos a gerar (a mesma pra gerar, marcar alterados e estimar) ---- */
+function collectExportJobs(){
+  var bgOnly = document.getElementById('exportBgOnly').checked;
+  var loopOn = document.getElementById('exportLoop').checked;
+  var loopMs = (parseFloat(document.getElementById('exportLoopSec').value) || 8) * 1000;
+  var jobs = program.map(function(it){ return Object.assign({}, it, {cycleBg:true}); });
+  var seenBg = {};
+  if(bgOnly){
+    jobs = [];
+    program.forEach(function(it){
+      var key = JSON.stringify([it.bg, it.colorFlowGroupIndex||0]);
+      if(seenBg[key]) return;
+      seenBg[key] = true;
+      jobs.push(Object.assign({}, it, {noText:true, instrumental:false, cycleBg:true, ghostWord:'', loopMs: loopOn ? loopMs : 0}));
+    });
+  }
+  if(loopOn && !bgOnly){ jobs = program.map(function(it){ return Object.assign({}, it, {loopMs: loopMs}); }); }
+  var blankFirst = document.getElementById('exportBlankFirst').checked && !bgOnly;
+  if(blankFirst){
+    jobs.unshift(Object.assign({}, program[0], {noText:true, cycleBg:true, blankIntro:true, loopMs: loopOn ? loopMs : 0}));
+  }
+  var numOffset = blankFirst ? 1 : 0;
+  var darkenOn = document.getElementById('exportDarken').checked;
+  var speedSel = document.getElementById('exportSceneSpeed').value || 'auto';
+  var sceneScale = parseFloat(document.getElementById('exportSceneQuality').value) || 1;
+  jobs.forEach(function(j){
+    j.darken = darkenOn; j.sceneScale = sceneScale;
+    if(speedSel !== 'auto' && SPEED_LEVELS[speedSel]) j.sceneLoops = SPEED_LEVELS[speedSel].loops;
+    else j.sceneLoops = j.sceneLoops || 1;
+  });
+  jobs.forEach(function(j, ix){ j.orderIdx = ix; });    /* posição na música inteira: a numeração dos arquivos não muda quando só alguns são gerados */
+  return { jobs: jobs, bgOnly: bgOnly, numOffset: numOffset, sceneScale: sceneScale };
+}
+function exportFileName(item, ext, numOffset){
+  var i = item.orderIdx;
+    var phrase = item.lines.map(function(l){ return l.text; }).filter(Boolean).join(' ').replace(/\*/g, '').replace(/\s+/g, ' ').trim();   /* v43: a frase inteira do slide (era: título + 6 palavras) */
+    var numTxt = String(i+1-numOffset).padStart(2,'0');
+    var name = item.blankIntro
+      ? sanitizeFileName('00 SEM LETRA') + '.' + ext
+      : item.instrumental
+      ? sanitizeFileName(numTxt + ' INSTRUMENTAL SEM LETRA') + '.' + ext   /* v44: instrumental no meio = NN_INSTRUMENTAL_SEM_LETRA */
+      : item.noText
+      ? sanitizeFileName('FUNDO ' + String(i+1).padStart(2,'0') + ' ' + (item.bg && item.bg.type === 'scene' ? ((SCENES_BY_KEY[item.bg.value] || {}).label || item.bg.value) : (item.bg && item.bg.value ? String(item.bg.value).split(/[\\/]/).pop().replace(/\.[a-z0-9]+$/i,'') : (item.bg ? item.bg.type : 'fundo')))) + '.' + ext
+      : slideFileBase(numTxt, phrase || 'slide') + '.' + ext;
+  return name;
+}
+function jobKey(j){ return j.blankIntro ? '__blank' : j.slideId; }
+function jobSelected(j){ return j.blankIntro ? exportSelBlank : exportSel[j.slideId] !== false; }
+function selBlankRowOn(){ return document.getElementById('exportBlankFirst').checked && !document.getElementById('exportBgOnly').checked; }
+function selCounts(){
+  var on = 0, total = program.length;
+  program.forEach(function(it){ if(exportSel[it.slideId] !== false) on++; });
+  if(program.length && selBlankRowOn()){ total++; if(exportSelBlank) on++; }
+  return { on: on, total: total };
+}
+function exportSelActive(){
+  if(!program.length || document.getElementById('exportBgOnly').checked) return false;
+  var c = selCounts(); return c.on < c.total;
+}
+
+/* ---- assinatura de cada vídeo (pra saber o que mudou desde a última geração) ---- */
+function sigReplacer(k, v){ return (k === 'value' && typeof v === 'string' && v.length > 300) ? (v.length + ':' + v.slice(0, 120) + v.slice(-120)) : v; }
+function jobSignature(job, rp, le, name){
+  var copy = Object.assign({}, job); delete copy.orderIdx;
+  var raw = JSON.stringify(copy, sigReplacer) + '|' + rp.res + '|' + rp.fps + '|' + rp.durationSec + '|' + rp.speed + '|' + (le.seq ? 's' + le.pauseSec : 'j') + '|' + name;
+  return hashStr(raw).toString(36) + '.' + raw.length.toString(36);
+}
+function exportMarks(){
+  var song = songOfProgram();
+  if(!song || !song.exportSig || !song.exportSig.slides) return null;
+  var cj = collectExportJobs();
+  if(cj.bgOnly) return null;
+  var rp = exportRenderParams(), le = lineEntryFromControls(), st = song.exportSig.slides, out = {};
+  cj.jobs.forEach(function(j){
+    var k = jobKey(j), sig = jobSignature(j, rp, lineEntryOfItem(j, le), exportFileName(j, 'mp4', cj.numOffset));
+    out[k] = st[k] === undefined ? 'novo' : (st[k] === sig ? 'ok' : 'mudou');
+  });
+  return out;
+}
+function markTag(m){
+  return m === 'ok' ? '<span class="cueTag ok">✓ gerado</span>' : m === 'mudou' ? '<span class="cueTag chg">✏ alterado</span>' : m === 'novo' ? '<span class="cueTag new">🆕 novo</span>' : '';
+}
+
+/* ---- estimativa de tempo: aprende com o tempo real das últimas gerações neste PC ---- */
+var TIMING_KEY = 'gsa_timing_v1';
+function timingLoad(){ try{ return JSON.parse(localStorage.getItem(TIMING_KEY) || '{}') || {}; }catch(e){ return {}; } }
+function timingKey(res, fps, scale, scene){ return res + '|' + fps + '|' + scale + '|' + (scene ? 'cena' : 'liso'); }
+function timingMsPerFrame(res, fps, scale, scene){
+  var t = timingLoad(), k = timingKey(res, fps, scale, scene);
+  if(t[k] > 0) return { ms: t[k], learned: true };
+  var parts = res.split('x'), px = (parseInt(parts[0], 10) * parseInt(parts[1], 10)) / (1920 * 1200);
+  return { ms: (scene ? 52 * (0.35 + 0.65 * scale) : 14) * px, learned: false };    /* chute inicial: o PC de casa gastou ~52 ms por quadro com fundo animado em 1920×1200 */
+}
+function timingRecord(res, fps, scale, scene, msPerFrame){
+  if(!(msPerFrame > 0)) return;
+  try{
+    var t = timingLoad(), k = timingKey(res, fps, scale, scene);
+    t[k] = t[k] > 0 ? Math.round((t[k] * 0.5 + msPerFrame * 0.5) * 10) / 10 : Math.round(msPerFrame * 10) / 10;
+    localStorage.setItem(TIMING_KEY, JSON.stringify(t));
+  }catch(e){}
+}
+function fmtDur(sec){
+  sec = Math.max(1, Math.round(sec));
+  if(sec < 90) return sec + ' s';
+  var m = Math.round(sec / 60);
+  if(m < 90) return m + ' min';
+  return Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '');
+}
+function jobVideoSeconds(job, rp, le){
+  if(job.loopMs) return job.loopMs / 1000;
+  return Math.max(rp.durationSec, itemAnimEndMs(job, lineEntryOfItem(job, le), rp.speed) / 1000 + 1.5);
+}
+function exportEstimateText(){
+  if(!program.length) return '';
+  var rp = exportRenderParams(), le = lineEntryFromControls(), cj = collectExportJobs();
+  var sel = (!cj.bgOnly && exportSelActive()) ? cj.jobs.filter(jobSelected) : cj.jobs;
+  if(!sel.length) return 'Nenhum slide marcado.';
+  var total = 0, learnedAll = true;
+  sel.forEach(function(j){
+    var scene = !!(j.bg && j.bg.type === 'scene');
+    var tm = timingMsPerFrame(rp.res, rp.fps, j.sceneScale || rp.scale, scene);
+    if(!tm.learned) learnedAll = false;
+    total += jobVideoSeconds(j, rp, le) * rp.fps * tm.ms / 1000;
+  });
+  return '⏱ ' + sel.length + ' vídeo' + (sel.length === 1 ? '' : 's') + ' ≈ ' + fmtDur(total) +
+    (learnedAll ? ' (pelo tempo real das suas últimas gerações neste PC)' : ' (chute inicial — fica mais certo depois da primeira geração)');
+}
+function updateSelUi(){
+  var c = selCounts();
+  var el = document.getElementById('cueSelCount');
+  if(el) el.textContent = c.on === c.total ? 'todos (' + c.total + ')' : c.on + ' de ' + c.total + ' marcados';
+  var gen = document.getElementById('btnGenerate');
+  if(gen) gen.textContent = exportSelActive() ? '▶ Gerar ' + c.on + ' de ' + c.total + ' vídeos' : '▶ Gerar vídeos';
+  var es = document.getElementById('exportEstimate');
+  if(es){ var t = ''; try{ t = exportEstimateText(); }catch(e){ t = ''; } es.textContent = t; }
+}
+var ENTRY_PRESETS = [['', 'Entrada: como a música'], ['junto', 'Entrada: junto'], ['seq:0.4', 'Entrada: em seguida · 0,4 s'], ['seq:0.8', 'Entrada: em seguida · 0,8 s'], ['seq:1.5', 'Entrada: em seguida · 1,5 s'], ['seq:3', 'Entrada: em seguida · 3 s']];
+function slideEntryValue(item){
+  var o = item.lineEntry;
+  if(!o || !o.mode) return '';
+  return o.mode === 'junto' ? 'junto' : 'seq:' + o.pauseSec;
+}
+function entrySelectHtml(item, idx){
+  var cur = slideEntryValue(item), opts = ENTRY_PRESETS.slice();
+  if(!opts.some(function(p){ return p[0] === cur; })) opts.push([cur, 'Entrada: em seguida · ' + String(item.lineEntry.pauseSec).replace('.', ',') + ' s']);
+  return '<select class="cueEntry" data-idx="' + idx + '" aria-label="Entrada das linhas deste slide">' +
+    opts.map(function(p){ return '<option value="' + p[0] + '"' + (p[0] === cur ? ' selected' : '') + '>' + p[1] + '</option>'; }).join('') + '</select>';
+}
 function renderExportCueList(){
   var wrap = document.getElementById('exportCueList');
   if(program.length === 0){
     wrap.innerHTML = '<div class="emptyState">Carregue uma música para ver os slides aqui.</div>';
+    updateSelUi(); renderLineEntryUi();
     return;
   }
-  wrap.innerHTML = program.map(function(item, i){
+  if(exportSelSong !== program[0].songId){ exportSelSong = program[0].songId; exportSel = {}; exportSelBlank = true; }
+  var marks = exportMarks();
+  var nChanged = marks ? Object.keys(marks).filter(function(k){ return marks[k] !== 'ok'; }).length : 0;
+  var scrollTop = wrap.scrollTop;
+  var tools = '<div class="cueTools"><b style="font-size:.8rem;">Slides a gerar</b>' +
+    '<button class="btn" type="button" data-sel="all">Todos</button>' +
+    '<button class="btn" type="button" data-sel="none">Nenhum</button>' +
+    (marks ? '<button class="btn" type="button" data-sel="changed"' + (nChanged ? '' : ' disabled') + '>' + (nChanged ? '✏ Só os alterados (' + nChanged + ')' : '✓ Nada alterado') + '</button>' : '') +
+    '<span class="statusLine" id="cueSelCount" style="margin:0;"></span></div>';
+  wrap.innerHTML = tools + program.map(function(item, i){
     var header = item.isFirstOfSong ? '<div class="cueSongHeader">' + esc(item.songTitle) + '</div>' : '';
+    var blank = (i === 0 && selBlankRowOn()) ?
+      '<label class="cueItem' + (exportSelBlank ? '' : ' off') + '" data-blank="1"><input type="checkbox" class="cueSel" data-blank="1"' + (exportSelBlank ? ' checked' : '') + '>' +
+      '<span class="cueNum">00</span><div class="cueMain"><div class="cueTxt">(slide sem letra no início — fundo da 1ª tela)</div>' + (marks ? '<div class="cueMeta">' + markTag(marks.__blank) + '</div>' : '') + '</div></label>' : '';
+    var on = exportSel[item.slideId] !== false;
     var preview = item.instrumental ? '(slide sem letra)' : item.lines.map(function(l){ return l.text; }).filter(Boolean).join(' · ');
-    return header +
-      '<div class="cueItem" data-idx="' + i + '">' +
+    var canEntry = !item.noText && item.lines.some(function(l){ return l && l.text; });
+    var meta = (marks ? markTag(marks[item.slideId]) : '') + (canEntry ? entrySelectHtml(item, i) : '');
+    return header + blank +
+      '<label class="cueItem' + (on ? '' : ' off') + '" data-idx="' + i + '">' +
+        '<input type="checkbox" class="cueSel" data-idx="' + i + '"' + (on ? ' checked' : '') + '>' +
         '<span class="cueNum">Q' + (i+1) + '</span>' +
-        '<div class="cueTxt">' + esc(preview) + '</div>' +
-      '</div>';
+        '<div class="cueMain"><div class="cueTxt">' + esc(preview) + '</div>' + (meta ? '<div class="cueMeta">' + meta + '</div>' : '') + '</div>' +
+      '</label>';
   }).join('');
+  wrap.scrollTop = scrollTop;
+  updateSelUi(); renderLineEntryUi();
 }
+(function(){
+  var wrap = document.getElementById('exportCueList');
+  wrap.addEventListener('change', function(e){
+    var t = e.target;
+    if(!t || !t.classList) return;
+    if(t.classList.contains('cueSel')){
+      if(t.getAttribute('data-blank')) exportSelBlank = t.checked;
+      else { var it = program[parseInt(t.getAttribute('data-idx'), 10)]; if(it){ if(t.checked) delete exportSel[it.slideId]; else exportSel[it.slideId] = false; } }
+      var row = t.closest('.cueItem'); if(row) row.classList.toggle('off', !t.checked);
+      updateSelUi();
+    } else if(t.classList.contains('cueEntry')){
+      var item = program[parseInt(t.getAttribute('data-idx'), 10)]; if(!item) return;
+      var song = findSong(item.songId), sl = song && song.slides.find(function(x){ return x.id === item.slideId; });
+      var v = t.value, parts = v.split(':');
+      var entry = !v ? null : (parts[0] === 'junto' ? { mode: 'junto', pauseSec: 0 } : { mode: 'seq', pauseSec: parseFloat(parts[1]) || LINE_PAUSE_DEFAULT });
+      item.lineEntry = entry;
+      if(sl){ if(entry) sl.lineEntry = entry; else delete sl.lineEntry; scheduleSave(); }
+      renderExportCueList();
+    }
+  });
+  wrap.addEventListener('click', function(e){
+    var b = e.target && e.target.closest ? e.target.closest('[data-sel]') : null;
+    if(!b || b.disabled) return;
+    var how = b.getAttribute('data-sel');
+    exportSel = {};
+    if(how === 'none'){ program.forEach(function(it){ exportSel[it.slideId] = false; }); exportSelBlank = false; }
+    else if(how === 'changed'){
+      var mk = exportMarks() || {};
+      program.forEach(function(it){ if(mk[it.slideId] === 'ok') exportSel[it.slideId] = false; });
+      exportSelBlank = mk.__blank !== 'ok';
+    } else exportSelBlank = true;
+    renderExportCueList();
+  });
+  ['exportLineEntry', 'exportLinePause'].forEach(function(id){ document.getElementById(id).addEventListener('change', saveLineEntryToSong); });
+  ['exportRes', 'exportFps', 'exportHold', 'exportSpeed', 'exportLoop', 'exportLoopSec', 'exportBgOnly', 'exportBlankFirst', 'exportDarken', 'exportSceneSpeed', 'exportSceneQuality'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.addEventListener('change', function(){ renderExportCueList(); });
+  });
+})();
 
 /* =========================================================================
    PURE LAYOUT/ANIMATION LOGIC (unit tested separately — see videoLogicV2.js)
@@ -4129,14 +4431,29 @@ function lineAnimDurationMs(animType, text, opts){
   }
   return (opts.animDurMs || 700)*speedMult;
 }
+/* v45 — instante (ms) em que cada linha COMEÇA a entrar.
+   Junto (padrão, como sempre foi): uma atrás da outra com intervalo fixo (staggerMs).
+   Em seguida (opts.seq): a próxima só começa quando a anterior terminou de entrar + a pausa (opts.pauseMs). */
+function computeLineStartsMs(animType, planLines, opts){
+  opts = opts || {};
+  var n = planLines.length, starts = new Array(n), i;
+  if(opts.seq){
+    var pause = opts.pauseMs || 0, t = 0;
+    for(i = 0; i < n; i++){ starts[i] = t; t += lineAnimDurationMs(animType, planLines[i].text, opts) + pause; }
+  } else {
+    var st = opts.staggerMs != null ? opts.staggerMs : 150;
+    for(i = 0; i < n; i++) starts[i] = i * st;
+  }
+  return starts;
+}
 function totalDurationMsV2(animType, planLines, opts){
   opts = opts || {};
   var holdMs = (opts.holdSec != null ? opts.holdSec : 14) * 1000;
-  var staggerMs = opts.staggerMs != null ? opts.staggerMs : 150;
+  var starts = computeLineStartsMs(animType, planLines, opts);
   var maxEnd = 0;
   planLines.forEach(function(l,i){
     var dur = lineAnimDurationMs(animType, l.text, opts);
-    var end = i*staggerMs + dur;
+    var end = starts[i] + dur;
     if(end>maxEnd) maxEnd = end;
   });
   return maxEnd + holdMs;
@@ -4347,7 +4664,7 @@ function drawFrame(ctx, w, h, item, layout, elapsedMs, videoEl, imgEl, staggerMs
 
   var LP = item.loopMs ? (elapsedMs/item.loopMs*Math.PI*2) : 0;
   (item.noText ? [] : layout.lines).forEach(function(lp, i){
-    var lineElapsed = elapsedMs - i*staggerMs;
+    var lineElapsed = elapsedMs - (Array.isArray(staggerMs) ? (staggerMs[i] || 0) : i*staggerMs);   /* v45: staggerMs pode ser a lista de começos de cada linha */
     if(item.loopMs){
       var xL = lp.xOffsetFrac * w, yL = layout.yPositions[i];
       var fdL = lp.style==='script' ? scriptDef : boldDef;
@@ -4476,12 +4793,15 @@ async function prepareSlide(item, opts, realtime){
   var baseSpeed = opts.speedMult || 1;
   var speedMult = (item.energy && item.layoutMode !== 'solto') ? baseSpeed * LAYOUT_STYLE.energySpeedFactor : baseSpeed;
   var effStagger = STAGGER_MS * baseSpeed;
+  var planForTime = item.noText ? [] : layout.lines;      /* v45: slide sem letra não alonga o vídeo */
+  var lineOpts = {staggerMs: effStagger, speedMult: speedMult, seq: !!opts.lineSeq, pauseMs: opts.linePauseMs || 0};
+  var lineStarts = computeLineStartsMs(item.anim, layout.lines, lineOpts);
   var totalMs;
   if(opts.durationSec){
-    var animEnd = totalDurationMsV2(item.anim, layout.lines, {holdSec: 0, staggerMs: effStagger, speedMult: speedMult});
+    var animEnd = totalDurationMsV2(item.anim, planForTime, {holdSec: 0, staggerMs: effStagger, speedMult: speedMult, seq: lineOpts.seq, pauseMs: lineOpts.pauseMs});
     totalMs = Math.max(opts.durationSec*1000, animEnd + 1500);
   } else {
-    totalMs = totalDurationMsV2(item.anim, layout.lines, {holdSec: opts.holdSec, staggerMs: effStagger, speedMult: speedMult});
+    totalMs = totalDurationMsV2(item.anim, planForTime, {holdSec: opts.holdSec, staggerMs: effStagger, speedMult: speedMult, seq: lineOpts.seq, pauseMs: lineOpts.pauseMs});
   }
   if(item.loopMs) totalMs = item.loopMs;
   if(item.bg && item.bg.type === 'scene'){ SceneGL.render(item.bg.value, 0, opts.width, opts.height, item.sceneScale || 1); }
@@ -4494,7 +4814,7 @@ async function prepareSlide(item, opts, realtime){
   } else if(item.bg && item.bg.type === 'colorflow'){
     textureCanvas = makeDitherCanvas(opts.width, opts.height, hashStr(item.slideId));
   }
-  return { canvas:canvas, ctx:ctx, videoEl:videoEl, imgEl:imgEl, layout:layout, speedMult:speedMult, effStagger:effStagger, totalMs:totalMs, textureCanvas:textureCanvas };
+  return { canvas:canvas, ctx:ctx, videoEl:videoEl, imgEl:imgEl, layout:layout, speedMult:speedMult, effStagger:effStagger, lineStarts:lineStarts, totalMs:totalMs, textureCanvas:textureCanvas };
 }
 
 /* ---------- Gravação DIRETA em MP4 (H.264) com WebCodecs: quadro a quadro, sem tempo real,
@@ -4545,7 +4865,7 @@ async function renderSlideToMp4(item, opts, cfg, onProgress){
       if(encErr) throw encErr;
       var elapsed = k * 1000 / fps;
       if(P.videoEl && P.videoEl.duration > 0){ await seekVideo(P.videoEl, (elapsed / 1000) % P.videoEl.duration); }
-      drawFrame(P.ctx, opts.width, opts.height, item, P.layout, elapsed, P.videoEl, P.imgEl, P.effStagger, P.textureCanvas, P.totalMs, P.speedMult);
+      drawFrame(P.ctx, opts.width, opts.height, item, P.layout, elapsed, P.videoEl, P.imgEl, P.lineStarts, P.textureCanvas, P.totalMs, P.speedMult);
       var frame = new VideoFrame(P.canvas, { timestamp: Math.round(k * 1e6 / fps), duration: Math.round(1e6 / fps) });
       encoder.encode(frame, { keyFrame: k % (fps * 2) === 0 });
       frame.close();
@@ -4571,7 +4891,7 @@ function renderSlideToWebM(item, opts){
     (async function(){
       var P = await prepareSlide(item, opts, true);
       var canvas = P.canvas, ctx = P.ctx, videoEl = P.videoEl, imgEl = P.imgEl, layout = P.layout,
-          speedMult = P.speedMult, effStagger = P.effStagger, totalMs = P.totalMs, textureCanvas = P.textureCanvas;
+          speedMult = P.speedMult, effStagger = P.lineStarts, totalMs = P.totalMs, textureCanvas = P.textureCanvas;
 
       var stream = canvas.captureStream(opts.fps);
       var mimeCandidates = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
@@ -4833,6 +5153,7 @@ fsInit();
 
 document.getElementById('btnGenerate').addEventListener('click', async function(){
   if(program.length === 0){ toast('Carregue uma música primeiro.'); return; }
+  if(!document.getElementById('exportBgOnly').checked && selCounts().on === 0){ toast('Marque pelo menos um slide para gerar.'); return; }
   var resParts = document.getElementById('exportRes').value.split('x');
   var width = parseInt(resParts[0],10), height = parseInt(resParts[1],10);
   var fps = parseInt(document.getElementById('exportFps').value,10);
@@ -4858,34 +5179,21 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
     if(!useFolder) toast('Sem permissão para gravar na pasta — os vídeos vão ficar na lista abaixo, pra baixar.');
     fsRender();
   }
-  var bgOnly = document.getElementById('exportBgOnly').checked;
-  var loopOn = document.getElementById('exportLoop').checked;
-  var loopMs = (parseFloat(document.getElementById('exportLoopSec').value) || 8) * 1000;
-  var jobs = program.map(function(it){ return Object.assign({}, it, {cycleBg:true}); });
-  var seenBg = {};
-  if(bgOnly){
-    jobs = [];
-    program.forEach(function(it){
-      var key = JSON.stringify([it.bg, it.colorFlowGroupIndex||0]);
-      if(seenBg[key]) return;
-      seenBg[key] = true;
-      jobs.push(Object.assign({}, it, {noText:true, instrumental:false, cycleBg:true, ghostWord:'', loopMs: loopOn ? loopMs : 0}));
-    });
+  var CJ = collectExportJobs();
+  var bgOnly = CJ.bgOnly, allJobs = CJ.jobs, numOffset = CJ.numOffset, sceneScale = CJ.sceneScale;
+  var jobs = allJobs, skipped = [];
+  if(exportSelActive()){      /* v45: só os slides marcados; os outros ficam como estão na pasta */
+    jobs = allJobs.filter(function(j){ if(jobSelected(j)) return true; skipped.push(j); return false; });
   }
-  if(loopOn && !bgOnly){ jobs = program.map(function(it){ return Object.assign({}, it, {loopMs: loopMs}); }); }
-  var blankFirst = document.getElementById('exportBlankFirst').checked && !bgOnly;
-  if(blankFirst){
-    jobs.unshift(Object.assign({}, program[0], {noText:true, cycleBg:true, blankIntro:true, loopMs: loopOn ? loopMs : 0}));
-  }
-  var numOffset = blankFirst ? 1 : 0;
-  var darkenOn = document.getElementById('exportDarken').checked;
-  var speedSel = document.getElementById('exportSceneSpeed').value || 'auto';
-  var sceneScale = parseFloat(document.getElementById('exportSceneQuality').value) || 1;
-  jobs.forEach(function(j){
-    j.darken = darkenOn; j.sceneScale = sceneScale;
-    if(speedSel !== 'auto' && SPEED_LEVELS[speedSel]) j.sceneLoops = SPEED_LEVELS[speedSel].loops;
-    else j.sceneLoops = j.sceneLoops || 1;
+  skipped.forEach(function(j){      /* os não regerados continuam "atuais": não entram na lista de arquivos antigos */
+    var fo = folderNameFromTitle(j.songTitle), w = (fsRun.written[fo] = fsRun.written[fo] || {});
+    ['mp4', 'webm'].forEach(function(e){ w[exportFileName(j, e, numOffset)] = true; });
   });
+  var rp = exportRenderParams(), leBase = lineEntryFromControls();
+  function jobOpts(it){
+    var l = lineEntryOfItem(it, leBase);
+    return {width:width, height:height, fps:fps, durationSec:durationSec, speedMult:speedMult, lineSeq:l.seq, linePauseMs:Math.round(l.pauseSec * 1000)};
+  }
 
   // motor de gravação: H.264 direto (WebCodecs) quando o navegador suporta; senão, modo compatível
   var directCfg = null;
@@ -4928,9 +5236,10 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
     var baseLabel = 'Renderizando ' + (i+1) + ' de ' + jobs.length + ' — ' + item.songTitle + (item.blankIntro ? ' (slide sem letra)' : '') + ' · ' + engineLabel;
     setExportProgress(i, jobs.length, baseLabel);
     var finalBlob = null, ext = 'mp4';
+    var tJob0 = performance.now();
     if(directCfg){
       try{
-        finalBlob = await renderSlideToMp4(item, {width:width, height:height, fps:fps, durationSec:durationSec, speedMult:speedMult}, directCfg, function(frac){
+        finalBlob = await renderSlideToMp4(item, jobOpts(item), directCfg, function(frac){
           setExportProgress(i + frac, jobs.length, baseLabel + ' — ' + Math.round(frac * 100) + '%');
         });
       }catch(err){
@@ -4940,10 +5249,13 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
         finalBlob = null;
       }
     }
+    if(finalBlob && directCfg){
+      timingRecord(rp.res, rp.fps, item.sceneScale || rp.scale, !!(item.bg && item.bg.type === 'scene'), (performance.now() - tJob0) / Math.max(1, jobVideoSeconds(item, rp, leBase) * rp.fps));
+    }
     if(!finalBlob){
       var webmBlob;
       try{
-        webmBlob = await renderSlideToWebM(item, {width:width, height:height, fps:fps, durationSec:durationSec, speedMult:speedMult});
+        webmBlob = await renderSlideToWebM(item, jobOpts(item));
       }catch(err){
         if(err && err.cancelled) break;
         toast('Erro no slide ' + (i+1) + ': ' + err.message);
@@ -4960,15 +5272,7 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
       }
     }
     if(exportCancel) break;
-    var phrase = item.lines.map(function(l){ return l.text; }).filter(Boolean).join(' ').replace(/\*/g, '').replace(/\s+/g, ' ').trim();   /* v43: a frase inteira do slide (era: título + 6 palavras) */
-    var numTxt = String(i+1-numOffset).padStart(2,'0');
-    var name = item.blankIntro
-      ? sanitizeFileName('00 SEM LETRA') + '.' + ext
-      : item.instrumental
-      ? sanitizeFileName(numTxt + ' INSTRUMENTAL SEM LETRA') + '.' + ext   /* v44: instrumental no meio = NN_INSTRUMENTAL_SEM_LETRA */
-      : item.noText
-      ? sanitizeFileName('FUNDO ' + String(i+1).padStart(2,'0') + ' ' + (item.bg && item.bg.type === 'scene' ? ((SCENES_BY_KEY[item.bg.value] || {}).label || item.bg.value) : (item.bg && item.bg.value ? String(item.bg.value).split(/[\\/]/).pop().replace(/\.[a-z0-9]+$/i,'') : (item.bg ? item.bg.type : 'fundo')))) + '.' + ext
-      : slideFileBase(numTxt, phrase || 'slide') + '.' + ext;
+    var name = exportFileName(item, ext, numOffset);
     var folderName = folderNameFromTitle(bgOnly ? ('Fundos - ' + (item.songTitle || '')) : item.songTitle);
     var entry = {name:name, songTitle:item.songTitle, folder:folderName, size:finalBlob.size};
     if(useFolder){
@@ -4982,6 +5286,19 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
     finalBlob = null;
     exportResults.push(entry);
     renderExportResults();
+    if(!bgOnly){
+      try{
+        var sgSong = findSong(item.songId);
+        if(sgSong){
+          sgSong.exportSig = sgSong.exportSig || {at: 0, slides: {}};
+          var keep = {}; allJobs.forEach(function(j){ keep[jobKey(j)] = 1; });
+          Object.keys(sgSong.exportSig.slides).forEach(function(k){ if(!keep[k]) delete sgSong.exportSig.slides[k]; });
+          sgSong.exportSig.slides[jobKey(item)] = jobSignature(item, rp, lineEntryOfItem(item, leBase), exportFileName(item, 'mp4', numOffset));
+          sgSong.exportSig.at = Date.now();
+          scheduleSave();
+        }
+      }catch(e){ console.warn('exportSig:', e); }
+    }
   }
   var wasCancelled = exportCancel;
   exportCancel = false;
@@ -4989,6 +5306,7 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
   setExportProgress(0,0,'');
   document.getElementById('exportPreviewCanvasWrap').innerHTML = '<span style="color:var(--muted);font-size:.85rem;">Aparece aqui durante a geração</span>';
   genBtn.disabled = false;
+  try{ renderExportCueList(); }catch(e){}      /* v45: atualiza as marcas ✓ gerado */
   if(!wasCancelled && exportResults.some(function(r){ return r.saved; })){
     try{ fsStale = await fsFindStale(); }catch(e){ fsStale = []; }
     fsRenderStale();
@@ -5273,7 +5591,7 @@ function claudeBgLabel(bg){
 function buildClaudeRequest(song, userNote){
   var L = [];
   var id = claudeRequestId(song);
-  L.push('=== PEDIDO DO GERADOR DE SLIDES (app v44) ===');
+  L.push('=== PEDIDO DO GERADOR DE SLIDES (app v45) ===');
   L.push('Claude, este pedido vem do app "Gerador de Slides Animados" (vídeos de letra animada para importar no Holyrics; projeto do Dulirio, ministério de louvor). Responda sempre em português do Brasil.');
   L.push('');
   L.push('O QUE FAZER (padrão: o usuário NÃO precisa escrever nada)');
@@ -5738,7 +6056,9 @@ function init(){
 var SONG_FILE_FORMAT = 'slides-holyrics-musica';
 function songFileObject(song){
   /* só a música (nunca a chave do Vagalume nem as outras músicas) */
-  return { formato: SONG_FILE_FORMAT, versao: 1, app: 'v44', exportadoEm: new Date().toISOString(), musica: JSON.parse(JSON.stringify(song)) };
+  var copy = JSON.parse(JSON.stringify(song));
+  delete copy.exportSig;   /* v45: "o que já foi gerado" vale só neste aparelho */
+  return { formato: SONG_FILE_FORMAT, versao: 1, app: 'v45', exportadoEm: new Date().toISOString(), musica: copy };
 }
 function songFileBase(song){ return 'musica-' + folderNameFromTitle(song.title || 'Sem título'); }
 function parseSongFile(data){
