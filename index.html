@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gerador de Slides Animados v50</title>
+<title>Gerador de Slides Animados v51</title>
 <meta name="theme-color" content="#0B0C10">
 <meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
@@ -305,7 +305,7 @@
     <div class="brand">
       <span class="dot"></span>
       <div>
-        <b>Gerador de Slides Animados</b> <span class="badge" style="vertical-align:middle;">v50</span>
+        <b>Gerador de Slides Animados</b> <span class="badge" style="vertical-align:middle;">v51</span>
         <small id="saveStatus">salvo ✓</small>
       </div>
     </div>
@@ -587,6 +587,15 @@
       <button class="btn" id="btnLoadProgram" style="align-self:flex-end;">Carregar</button>
     </div>
 
+    <div class="card stack" id="queueCard" style="margin-bottom:1rem;">
+      <b style="font-size:.95rem;">📋 Gerar várias músicas de uma vez</b>
+      <span class="statusLine" style="margin:0;">Marque as músicas e toque em <b>▶ Gerar as marcadas</b>. Elas são geradas <b>uma depois da outra</b>, cada uma na sua subpasta de <b>Slides prontos</b>, com os ajustes de cada música (velocidade, duração, fundo, entrada das linhas). As opções de resolução e quadros são as que estão abaixo. <b>Se uma falhar ou ficar parada, o app pula para a próxima</b> e te conta no fim. Precisa da pasta Slides prontos escolhida (Chrome/Edge no computador).</span>
+      <div class="row wrap"><button class="btn" id="btnQueueAll" type="button">Marcar todas</button><button class="btn" id="btnQueueNone" type="button">Nenhuma</button></div>
+      <div id="queueList"></div>
+      <button class="btn btn-primary" id="btnQueueRun" type="button" disabled>▶ Gerar as marcadas</button>
+      <div class="statusLine" id="queueNow" style="margin:0;"></div>
+    </div>
+
     <div class="card row wrap" id="exportCfgCard" style="margin-bottom:1rem;align-items:flex-start;display:none;">
       <span class="statusLine" id="exportCfgNote" style="margin:0;flex:1 1 14rem;"></span>
       <button class="btn" id="btnExportCfgReset" type="button">↺ Voltar ao padrão do app</button>
@@ -844,6 +853,7 @@
     <details class="helpSection">
       <summary>Importando no Holyrics</summary>
       <div class="helpBody">
+        <p><b>Várias músicas de uma vez:</b> na aba <b>Exportar</b>, no cartão <b>📋 Gerar várias músicas de uma vez</b>, marque as músicas e toque em <b>▶ Gerar as marcadas</b>. O app gera uma depois da outra, cada uma na sua subpasta de <b>Slides prontos</b>, com os ajustes de cada música (velocidade, duração, fundo). Precisa da pasta Slides prontos escolhida (assim os vídeos vão direto pro disco). Se uma música der erro ou ficar parada sem nenhum progresso por alguns minutos, o app <b>pula para a próxima</b> e mostra o que aconteceu embaixo do nome dela; depois é só gerar aquela de novo, sozinha. <b>✖ Cancelar</b> para a fila toda (os vídeos já prontos ficam). O computador não dorme durante a fila.</p>
         <p><b>Nome dos arquivos:</b> número + a <b>frase inteira</b> do slide (sem o nome da música), por exemplo <code>03_Teu_amor_me_alcancou_aqui.mp4</code>. O título da música vira o nome da <b>subpasta</b>. Letras que você cola precisam de título; as achadas na busca preenchem o título sozinhas (se você já digitou um, vale o seu).</p>
         <p>No Holyrics, na tela de edição da música, vá em <b>Tema</b> → selecione os arquivos de vídeo → marque <b>"Todos os Slides"</b> e selecione todos os arquivos de uma vez (Ctrl+A). O Holyrics aplica um vídeo por slide, seguindo a ordem numérica dos nomes dos arquivos — por isso os nomes já saem numerados (01, 02, 03...) na exportação.</p>
       </div>
@@ -2894,7 +2904,7 @@ function showView(name){
     b.classList.toggle('active', b.dataset.view === name);
   });
   document.body.classList.toggle('inEditor', name === 'songEditor');     /* v47: sobe o aviso (toast) pra não ficar embaixo do ↶ flutuante */
-  if(name === 'export'){ refreshExportPickers(); renderExportBgNote(); fsKnown.folder = null; try{ renderExportCueList(); }catch(e){} }
+  if(name === 'export'){ refreshExportPickers(); renderExportBgNote(); fsKnown.folder = null; try{ renderExportCueList(); }catch(e){} try{ renderQueueList(); }catch(e){} }
 }
 document.querySelectorAll('nav.tabs button').forEach(function(b){
   b.addEventListener('click', function(){ showView(b.dataset.view); });
@@ -4907,7 +4917,7 @@ async function runDiagnostic(setStatus){
   var L = [], wait = function(ms){ return new Promise(function(r){ setTimeout(r, ms || 0); }); };
   function add(x){ L.push(x); }
   var W = 1920, H = 1200, FPS = 24, HOLD = 16;
-  add('=== DIAGNÓSTICO DO PC — Gerador de Slides v50 ===');
+  add('=== DIAGNÓSTICO DO PC — Gerador de Slides v51 ===');
   add('Data: ' + new Date().toLocaleString('pt-BR'));
   var mc = /Chrome\/([\d.]+)/.exec(navigator.userAgent);
   add('Navegador: ' + (mc ? 'Chrome ' + mc[1] : navigator.userAgent));
@@ -6559,7 +6569,10 @@ function renderExportResults(){
   }).join('');
   document.getElementById('btnDownloadZip').disabled = !exportResults.some(function(r){ return r.blob; });
 }
+var exportBeat = Date.now();       /* v51: a cada progresso (ou início de slide) — o vigia da fila usa isso pra saber se travou */
 function setExportProgress(current, total, label){
+  exportBeat = Date.now();
+  try{ if(queueRun && queueRun.active && label) document.getElementById('queueNow').textContent = label; }catch(e){}
   var bar = document.getElementById('exportProgressBar');
   var txt = document.getElementById('exportProgressText');
   if(total <= 0){ bar.style.width = '0%'; txt.textContent = 'Nenhuma exportação em andamento.'; return; }
@@ -6570,9 +6583,14 @@ function setExportProgress(current, total, label){
 fsInit();
 fundosInit();
 
-document.getElementById('btnGenerate').addEventListener('click', async function(){
-  if(program.length === 0){ toast('Carregue uma música primeiro.'); return; }
-  if(!document.getElementById('exportBgOnly').checked && selCounts().on === 0){ toast('Marque pelo menos um slide para gerar.'); return; }
+var genTok = 0;      /* v51: cada geração tem um número; se o vigia desistir dela, ela não grava mais nada */
+document.getElementById('btnGenerate').addEventListener('click', async function(){ await runGenerate({}); });
+async function runGenerate(opts){
+  opts = opts || {};
+  var Q = !!opts.queue;      /* v51: dentro da fila não há diálogos nem toasts de "nada pra gerar"; quem controla botões e cancelar é a fila */
+  var startCount = exportResults.length;
+  if(program.length === 0){ if(!Q) toast('Carregue uma música primeiro.'); return {skip:'sem slides'}; }
+  if(!document.getElementById('exportBgOnly').checked && selCounts().on === 0){ if(!Q) toast('Marque pelo menos um slide para gerar.'); return {skip:'nenhum slide marcado'}; }
   var resParts = document.getElementById('exportRes').value.split('x');
   var width = parseInt(resParts[0],10), height = parseInt(resParts[1],10);
   var fps = parseInt(document.getElementById('exportFps').value,10);
@@ -6581,9 +6599,9 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
   var genBtn = document.getElementById('btnGenerate');
   var cancelBtn = document.getElementById('btnCancelExport');
 
-  clearExportResults();
+  if(!Q){ clearExportResults(); }
   genBtn.disabled = true;
-  exportCancel = false;
+  if(!Q){ exportCancel = false; }
   cancelBtn.style.display = '';
   cancelBtn.disabled = false;
   /* v43: pasta Slides prontos — a permissão é pedida AGORA, ainda dentro do clique */
@@ -6610,7 +6628,10 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
   });
   if(jobs.some(function(j){ return j.bg && j.bg.type === 'pasta'; })){      /* v49: fundos em vídeo da pasta precisam de permissão de leitura (pedida aqui, dentro do clique) */
     var okPasta = await fundosEnsurePerm();
-    if(!okPasta){ toast('Sem permissão para ler a pasta dos fundos em vídeo — nada foi gerado. Toque em Permitir quando o Chrome perguntar (ou troque o fundo).'); setExportProgress(0,0,''); genBtn.disabled = false; cancelBtn.style.display = 'none'; exportCancel = false; return; }
+    if(!okPasta){
+      if(!Q){ toast('Sem permissão para ler a pasta dos fundos em vídeo — nada foi gerado. Toque em Permitir quando o Chrome perguntar (ou troque o fundo).'); setExportProgress(0,0,''); genBtn.disabled = false; cancelBtn.style.display = 'none'; exportCancel = false; }
+      return {skip:'sem permissão para ler a pasta dos fundos em vídeo'};
+    }
   }
   var rp = exportRenderParams(), leBase = lineEntryFromControls();
   function jobOpts(it){
@@ -6647,16 +6668,18 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
     } else if(!directCfg && slowest > budget * 1.1){
       warnMsg = 'Desenhar o fundo animado está levando cerca de ' + Math.round(slowest) + ' ms por quadro (o ideal é abaixo de ' + Math.round(budget) + ' ms). No modo compatível o vídeo pode sair com travadas. Dica: use o Chrome/Edge (gravação direta), troque "Qualidade do fundo animado" para Média/Econômica ou use 1280×800. Continuar mesmo assim?';
     }
-    if(warnMsg){
+    if(warnMsg && Q){ opts.warn = warnMsg; }      /* v51: na fila ninguém está olhando pra responder — segue (o vigia cuida de travamento) */
+    else if(warnMsg){
       var okGo = await confirmDialog('Este PC pode ter dificuldade', warnMsg);
-      if(!okGo || exportCancel){ setExportProgress(0,0,''); genBtn.disabled = false; cancelBtn.style.display = 'none'; exportCancel = false; return; }
+      if(!okGo || exportCancel){ setExportProgress(0,0,''); genBtn.disabled = false; cancelBtn.style.display = 'none'; exportCancel = false; return {cancelled:true}; }
     }
   }
   var engineLabel = directCfg ? 'H.264 direto' : 'modo compatível';
+  var myTok = ++genTok;
   for(var i=0; i<jobs.length; i++){
-    if(exportCancel) break;
+    if(exportCancel || myTok !== genTok) break;
     var item = jobs[i];
-    var baseLabel = 'Renderizando ' + (i+1) + ' de ' + jobs.length + ' — ' + item.songTitle + (item.blankIntro ? ' (slide sem letra)' : '') + ' · ' + engineLabel;
+    var baseLabel = (opts.labelPrefix || '') + 'Renderizando ' + (i+1) + ' de ' + jobs.length + ' — ' + item.songTitle + (item.blankIntro ? ' (slide sem letra)' : '') + ' · ' + engineLabel;
     setExportProgress(i, jobs.length, baseLabel);
     var finalBlob = null, ext = 'mp4';
     var tJob0 = performance.now();
@@ -6694,7 +6717,7 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
         toast('Não foi possível converter o slide ' + (i+1) + ' para MP4 — salvo em WebM.');
       }
     }
-    if(exportCancel) break;
+    if(exportCancel || myTok !== genTok) break;
     var name = exportFileName(item, ext, numOffset);
     var folderName = folderNameFromTitle(bgOnly ? ('Fundos - ' + (item.songTitle || '')) : item.songTitle);
     var entry = {name:name, songTitle:item.songTitle, folder:folderName, size:finalBlob.size};
@@ -6724,13 +6747,13 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
     }
   }
   var wasCancelled = exportCancel;
-  exportCancel = false;
-  cancelBtn.style.display = 'none';
+  if(myTok !== genTok){ return {stalled:true, total:jobs.length}; }      /* v51: o vigia já desistiu desta geração: não mexe mais em nada */
+  if(!Q){ exportCancel = false; cancelBtn.style.display = 'none'; genBtn.disabled = false; }
   setExportProgress(0,0,'');
   document.getElementById('exportPreviewCanvasWrap').innerHTML = '<span style="color:var(--muted);font-size:.85rem;">Aparece aqui durante a geração</span>';
-  genBtn.disabled = false;
   fsKnown.folder = null;                       /* v47: depois de gerar, a pasta mudou — relê */
   try{ renderExportCueList(); }catch(e){}      /* v45: atualiza as marcas ✓ gerado */
+  if(Q) return {made: exportResults.length - startCount, total: jobs.length, cancelled: wasCancelled, warn: opts.warn || ''};
   if(!wasCancelled && exportResults.some(function(r){ return r.saved; })){
     try{ fsStale = await fsFindStale(); }catch(e){ fsStale = []; }
     fsRenderStale();
@@ -6742,11 +6765,144 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
     var nSaved = exportResults.filter(function(r){ return r.saved; }).length;
     toast('Exportação concluída' + (nSaved ? ' — ' + nSaved + ' vídeo(s) salvos em "' + saveDir.handle.name + '".' : '.'));
   }
-});
+  return {made: exportResults.length - startCount, total: jobs.length, cancelled: wasCancelled};
+}
 document.getElementById('btnCancelExport').addEventListener('click', function(){
   exportCancel = true;
+  if(queueRun && queueRun.active) queueStop = true;      /* v51: cancelar durante a fila para a fila toda */
   this.disabled = true;
   document.getElementById('exportProgressText').textContent = 'Cancelando… termina o quadro atual e para.';
+});
+
+/* =========================================================================
+   v51 — FILA: GERAR VÁRIAS MÚSICAS DE UMA VEZ
+   Lista pra marcar → uma música depois da outra, cada uma na SUA subpasta de Slides prontos, com os ajustes dela (mesmo caminho do
+   botão Carregar + ▶ Gerar). Nada trava a fila: música com erro é pulada; música sem progresso por muito tempo (vigia) é pulada;
+   sem diálogos no meio (permissões são pedidas UMA vez, no clique). Cancelar para a fila toda; os vídeos já prontos ficam.
+   Exige a pasta Slides prontos: sem ela os vídeos ficariam na memória (dezenas de vídeos pesam demais).
+   ========================================================================= */
+var queueRun = { active:false };
+var queueChecked = {};
+var queueStatus = {};
+var queueStop = false;
+var QUEUE_STALL_DIRECT = 3 * 60 * 1000;     /* sem nenhum progresso por tanto tempo = travou (gravação direta manda progresso a cada ~40 ms) */
+var QUEUE_STALL_COMPAT = 10 * 60 * 1000;    /* modo compatível: gravação em tempo real + conversão, sem progresso fino */
+function queueSongSlides(s){ return (s.slides || []).filter(function(sl){ return !sl.semLetra && (sl.lines || []).some(function(l){ return normKey(l.text); }); }).length; }
+function queueSelected(){ return (state.songs || []).filter(function(s){ return queueChecked[s.id] && queueSongSlides(s) > 0; }); }
+function songUsesPasta(song){ return !!((song.defaultBg && song.defaultBg.type === 'pasta') || (song.slides || []).some(function(sl){ return sl.bg && sl.bg.type === 'pasta'; })); }
+function updateQueueCount(){
+  var b = document.getElementById('btnQueueRun'); if(!b) return;
+  var n = queueSelected().length;
+  b.textContent = '▶ Gerar as marcadas' + (n ? ' (' + n + ')' : '');
+  b.disabled = queueRun.active || n === 0;
+}
+function renderQueueList(){
+  var wrap = document.getElementById('queueList'); if(!wrap) return;
+  var songs = state.songs || [];
+  if(!songs.length){ wrap.innerHTML = '<div class="emptyState">Nenhuma música criada ainda.</div>'; updateQueueCount(); return; }
+  wrap.innerHTML = songs.map(function(s){
+    var n = queueSongSlides(s), st = queueStatus[s.id];
+    return '<label style="display:flex;align-items:flex-start;gap:.55rem;padding:.45rem .2rem;border-bottom:1px solid var(--line);' + (n ? '' : 'opacity:.55;') + '">' +
+      '<input type="checkbox" data-qid="' + esc(s.id) + '"' + (queueChecked[s.id] && n ? ' checked' : '') + (n && !queueRun.active ? '' : ' disabled') + ' style="margin-top:.2rem;">' +
+      '<span style="flex:1;min-width:0;"><b>' + esc(s.title || '(sem título)') + '</b> <span style="color:var(--muted);font-size:.76rem;">· ' + (n ? n + ' slide' + (n > 1 ? 's' : '') : 'sem slides') + '</span>' +
+      (st ? '<br><span style="font-size:.78rem;">' + esc(st.text) + '</span>' : '') + '</span></label>';
+  }).join('');
+  wrap.querySelectorAll('input[data-qid]').forEach(function(cb){
+    cb.addEventListener('change', function(){ queueChecked[cb.getAttribute('data-qid')] = cb.checked; updateQueueCount(); });
+  });
+  updateQueueCount();
+}
+document.getElementById('btnQueueAll').addEventListener('click', function(){ if(queueRun.active) return; (state.songs || []).forEach(function(s){ queueChecked[s.id] = queueSongSlides(s) > 0; }); renderQueueList(); });
+document.getElementById('btnQueueNone').addEventListener('click', function(){ if(queueRun.active) return; queueChecked = {}; renderQueueList(); });
+/* mesmo caminho e MESMA ORDEM do botão Carregar: primeiro o programa da música (e todos os slides marcados), só depois os ajustes dela (Claude) e a entrada das linhas — senão esses ajustes são calculados em cima do programa da música anterior */
+function loadSongForExport(song){
+  document.getElementById('exportSourcePick').value = song.id;
+  program = buildProgramFromSong(song);
+  exportSel = {}; exportSelBlank = true;
+  renderExportCueList();
+  renderExportBgNote();
+}
+/* roda runGenerate vigiando o progresso: sem nenhum sinal por QUEUE_STALL_* → desiste dela e segue (ela não grava mais nada: genTok) */
+function runGenerateGuarded(opts){
+  return new Promise(function(resolve){
+    var done = false, timer = null;
+    function fin(v){ if(done) return; done = true; clearInterval(timer); resolve(v); }
+    exportBeat = Date.now();
+    runGenerate(opts).then(fin, function(err){ fin({error: (err && err.message) ? err.message : String(err)}); });
+    timer = setInterval(function(){
+      var lim = useDirectMp4 ? QUEUE_STALL_DIRECT : QUEUE_STALL_COMPAT;
+      if(Date.now() - exportBeat > lim){ exportCancel = true; genTok++; fin({stalled:true, stalledMin: Math.max(1, Math.round(lim / 60000))}); }
+    }, 1000);
+  });
+}
+function queueSleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+document.getElementById('btnQueueRun').addEventListener('click', async function(){
+  if(queueRun.active) return;
+  var sel = queueSelected();
+  if(!sel.length){ toast('Marque pelo menos uma música na lista.'); return; }
+  if(!FS_OK || !saveDir.handle){ toast('Para gerar várias músicas de uma vez, escolha antes a pasta "Slides prontos" (cartão mais abaixo): assim cada vídeo vai direto pro disco, sem pesar na memória.'); return; }
+  var pm = 'denied';
+  try{ pm = await saveDir.handle.queryPermission({mode:'readwrite'}); if(pm !== 'granted') pm = await saveDir.handle.requestPermission({mode:'readwrite'}); }catch(e){ pm = 'denied'; }
+  saveDir.perm = pm; try{ fsRender(); }catch(e){}
+  if(pm !== 'granted'){ toast('Sem permissão para gravar na pasta Slides prontos — a fila não começou. Toque em Permitir quando o Chrome perguntar.'); return; }
+  var pastaOk = true;
+  if(sel.some(songUsesPasta)){ pastaOk = await fundosEnsurePerm(); }
+  if(document.getElementById('exportBgOnly').checked){
+    var okB = await confirmDialog('Gerar só os fundos?', 'A opção "Só fundo (sem letra)" está marcada: a fila vai gerar só o fundo de cada música, sem letra. Continuar?');
+    if(!okB) return;
+  }
+  queueRun = { active:true }; queueStatus = {}; queueStop = false; exportCancel = false;
+  sel.forEach(function(s){ queueStatus[s.id] = {text:'⏳ na fila'}; });
+  var genBtn = document.getElementById('btnGenerate'), cancelBtn = document.getElementById('btnCancelExport');
+  genBtn.disabled = true; document.getElementById('btnLoadProgram').disabled = true; document.getElementById('exportSourcePick').disabled = true;
+  cancelBtn.style.display = ''; cancelBtn.disabled = false;
+  clearExportResults();
+  renderQueueList();
+  var wl = null; try{ if(navigator.wakeLock) wl = await navigator.wakeLock.request('screen'); }catch(e){}      /* não deixa o PC dormir no meio */
+  var okN = 0, probN = 0, stopMsg = '';
+  try{
+    for(var k = 0; k < sel.length; k++){
+      var s = sel[k], st = queueStatus[s.id];
+      if(queueStop){ for(var r = k; r < sel.length; r++) queueStatus[sel[r].id] = {text:'⏹ não gerada (fila cancelada)'}; break; }
+      st.text = '▶ gerando…'; renderQueueList();
+      var before = exportResults.length, res;
+      try{
+        loadSongForExport(s);
+        if(songUsesPasta(s) && !pastaOk) res = {skip:'sem permissão para ler a pasta dos fundos em vídeo'};
+        else res = await runGenerateGuarded({queue:true, labelPrefix:'Música ' + (k + 1) + ' de ' + sel.length + ' · '});
+      }catch(err){ res = {error: (err && err.message) ? err.message : String(err)}; }
+      var made = exportResults.length - before;
+      var good = false;
+      if(res.skip) st.text = '⏭ pulada: ' + res.skip;
+      else if(res.stalled) st.text = '⚠ travou (sem progresso há ' + res.stalledMin + ' min) — pulei para a próxima' + (made ? ' · ' + made + ' vídeo(s) já gravado(s)' : '');
+      else if(res.error) st.text = '⚠ erro: ' + res.error + ' — pulei para a próxima' + (made ? ' · ' + made + ' vídeo(s) já gravado(s)' : '');
+      else if(queueStop || res.cancelled) st.text = '⏹ cancelada' + (made ? ' · ' + made + ' vídeo(s) gravado(s)' : '');
+      else if(made > 0 && made >= res.total){ st.text = '✓ ' + made + ' vídeo' + (made > 1 ? 's' : '') + ' gravado' + (made > 1 ? 's' : '') + ' em "' + folderNameFromTitle(s.title) + '"'; good = true; }
+      else if(made > 0) st.text = '⚠ só ' + made + ' de ' + res.total + ' vídeos ficaram prontos (os outros falharam) — gere essa música de novo';
+      else st.text = '⚠ nenhum vídeo ficou pronto';
+      if(good) okN++; else if(!queueStop) probN++;
+      if(res.stalled){ await queueSleep(4000); }      /* dá tempo da geração abandonada perceber e soltar o que estava usando */
+      exportCancel = false;
+      renderQueueList();
+      if(exportResults.some(function(r2){ return !r2.saved; })){      /* a pasta parou de aceitar gravação: seguir encheria a memória */
+        stopMsg = 'A pasta Slides prontos deixou de aceitar gravação — parei a fila para não encher a memória. Os vídeos que não foram gravados estão na lista abaixo, para baixar.';
+        for(var r3 = k + 1; r3 < sel.length; r3++) queueStatus[sel[r3].id] = {text:'⏹ não gerada (fila parada)'};
+        break;
+      }
+    }
+  } finally {
+    try{ if(wl) await wl.release(); }catch(e){}
+    queueRun = { active:false }; exportCancel = false;
+    cancelBtn.style.display = 'none';
+    genBtn.disabled = false; document.getElementById('btnLoadProgram').disabled = false; document.getElementById('exportSourcePick').disabled = false;
+    setExportProgress(0, 0, '');
+    fsKnown.folder = null; try{ renderExportCueList(); }catch(e){}
+    renderQueueList();
+  }
+  var nSaved = exportResults.filter(function(r4){ return r4.saved; }).length;
+  var msg = stopMsg || (queueStop ? 'Fila cancelada. ' : 'Fila terminada. ') + okN + ' de ' + sel.length + ' música(s) completa(s)' + (probN ? ', ' + probN + ' com problema (veja acima)' : '') + ' · ' + nSaved + ' vídeo(s) em "' + saveDir.handle.name + '".';
+  document.getElementById('queueNow').textContent = msg;
+  toast(msg);
 });
 
 document.getElementById('btnDownloadZip').addEventListener('click', async function(){
@@ -7015,7 +7171,7 @@ function claudeBgLabel(bg){
 function buildClaudeRequest(song, userNote){
   var L = [];
   var id = claudeRequestId(song);
-  L.push('=== PEDIDO DO GERADOR DE SLIDES (app v50) ===');
+  L.push('=== PEDIDO DO GERADOR DE SLIDES (app v51) ===');
   L.push('Claude, este pedido vem do app "Gerador de Slides Animados" (vídeos de letra animada para importar no Holyrics; projeto do Dulirio, ministério de louvor). Responda sempre em português do Brasil.');
   L.push('');
   L.push('O QUE FAZER (padrão: o usuário NÃO precisa escrever nada)');
@@ -7618,7 +7774,7 @@ function songFileObject(song){
   /* só a música (nunca a chave do Vagalume nem as outras músicas) */
   var copy = JSON.parse(JSON.stringify(song));
   delete copy.exportSig;   /* v45: "o que já foi gerado" vale só neste aparelho */
-  return { formato: SONG_FILE_FORMAT, versao: 1, app: 'v50', exportadoEm: new Date().toISOString(), musica: copy };
+  return { formato: SONG_FILE_FORMAT, versao: 1, app: 'v51', exportadoEm: new Date().toISOString(), musica: copy };
 }
 function songFileBase(song){ return 'musica-' + folderNameFromTitle(song.title || 'Sem título'); }
 function parseSongFile(data){
