@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gerador de Slides Animados v51</title>
+<title>Gerador de Slides Animados v52</title>
 <meta name="theme-color" content="#0B0C10">
 <meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
@@ -305,7 +305,7 @@
     <div class="brand">
       <span class="dot"></span>
       <div>
-        <b>Gerador de Slides Animados</b> <span class="badge" style="vertical-align:middle;">v51</span>
+        <b>Gerador de Slides Animados</b> <span class="badge" style="vertical-align:middle;">v52</span>
         <small id="saveStatus">salvo ✓</small>
       </div>
     </div>
@@ -337,6 +337,12 @@
     <label class="field" style="margin-bottom:1rem;">
       <input type="search" id="songsSearch" placeholder="🔎 Buscar na lista: título ou um trecho da letra" autocomplete="off">
     </label>
+    <div class="row wrap" id="sendPackBar" style="margin-bottom:1rem;align-items:center;gap:.5rem;">
+      <button class="btn" id="btnPackAll" type="button">☑ Marcar todas</button>
+      <button class="btn" id="btnPackNone" type="button">Nenhuma</button>
+      <button class="btn btn-primary" id="btnPackSend" type="button" disabled>📤 Enviar marcadas</button>
+      <span class="statusLine" style="margin:0;flex:1 1 100%;">Marque as caixinhas das músicas prontas e envie todas num arquivo só (WhatsApp ou e-mail). No outro computador: <b>⭱ Importar</b> e escolha o arquivo.</span>
+    </div>
     <details class="helpSection" id="sugBox" style="margin-bottom:1rem;">
       <summary>⭐ Gospel mais tocadas de 2026 — sugestões prontas</summary>
       <div class="helpBody">
@@ -938,7 +944,7 @@
       <div class="helpBody">
         <p><b>Instalar:</b> no fim da lista de músicas aparece o botão <b>📲 Instalar app</b> (quando o navegador permite). Se não aparecer, no Chrome do computador procure <b>Instalar página como app</b> no menu ⋮ (fica em <i>Salvar e compartilhar</i>); no celular, <b>Adicionar à tela inicial</b>. O app instalado abre numa janela própria e o Chrome passa a lembrar a pasta dos vídeos.</p>
         <p><b>Sem internet:</b> depois de aberto uma vez com internet, o app abre mesmo offline (as fontes vão dentro dele). Com internet, ele sempre abre a versão mais nova; quando sai uma, aparece o aviso <b>"Nova versão disponível"</b> com o botão <b>Atualizar</b> — nada recarrega sozinho no meio do seu trabalho. Só precisam de internet: buscar letra, buscar imagem de fundo, o conversor de reserva e o .zip.</p>
-        <p><b>Cada aparelho guarda as suas músicas</b>, no próprio navegador (o endereço é aberto, mas ninguém vê o que você salvou). Pra levar <b>uma música</b>: na lista, toque em <b>📤 Enviar</b> — sai um arquivo pequeno pra mandar por WhatsApp ou e-mail; no outro aparelho, toque em <b>⭱ Importar</b> e escolha o arquivo: a música entra na lista como nova, sem apagar nada. Pra levar <b>tudo</b>: <b>⭳ Exportar biblioteca</b> (topo) e, no outro aparelho, <b>⭱ Importar</b>.</p>
+        <p><b>Cada aparelho guarda as suas músicas</b>, no próprio navegador (o endereço é aberto, mas ninguém vê o que você salvou). Pra levar <b>uma música</b>: na lista, toque em <b>📤 Enviar</b> — sai um arquivo pequeno pra mandar por WhatsApp ou e-mail; no outro aparelho, toque em <b>⭱ Importar</b> e escolha o arquivo: a música entra na lista como nova, sem apagar nada. Pra levar <b>várias de uma vez</b>: marque as caixinhas na lista e toque em <b>📤 Enviar marcadas</b> — vai tudo num arquivo só; no outro computador é o mesmo <b>⭱ Importar</b> (soma as músicas, não apaga nada). Pra levar <b>tudo</b>: <b>⭳ Exportar biblioteca</b> (topo) e, no outro aparelho, <b>⭱ Importar</b>.</p>
         <div class="tip">No primeiro uso em um aparelho novo a lista começa só com a música de exemplo: importe a biblioteca (ou as músicas enviadas) pra trazer as suas.</div>
       </div>
     </details>
@@ -3036,6 +3042,7 @@ function renderBgControl(container, bg, onChange){
 /* =========================================================================
    SONGS: LIST
    ========================================================================= */
+var packPick = {};      /* v52: músicas marcadas pra enviar (id -> true) */
 function renderSongsList(){
   try{ renderSugList(); }catch(e){}
   try{ refreshDataCard(); }catch(e){}
@@ -3060,6 +3067,7 @@ function renderSongsList(){
   list.innerHTML = sorted.map(function(song){
     return '' +
       '<div class="listItem" data-song="' + song.id + '">' +
+        '<label style="display:flex;align-items:center;padding:0 .6rem 0 .2rem;cursor:pointer;" title="Marcar pra enviar junto com as outras"><input type="checkbox" class="song-pick" data-id="' + song.id + '"' + (packPick[song.id] ? ' checked' : '') + ' style="width:20px;height:20px;"></label>' +
         '<div class="meta"><b>' + esc(song.title || '(sem título)') + '</b>' +
         '<span>' + song.slides.length + ' slide(s)</span></div>' +
         '<div class="spacer"></div>' +
@@ -3102,6 +3110,7 @@ function renderSongsList(){
       toast('Música duplicada.');
     });
   });
+  bindPackPicks(list);
 }
 document.getElementById('songsSortOrder').addEventListener('change', function(){ renderSongsList(); });
 document.getElementById('songsSearch').addEventListener('input', function(){ renderSongsList(); });
@@ -4917,7 +4926,7 @@ async function runDiagnostic(setStatus){
   var L = [], wait = function(ms){ return new Promise(function(r){ setTimeout(r, ms || 0); }); };
   function add(x){ L.push(x); }
   var W = 1920, H = 1200, FPS = 24, HOLD = 16;
-  add('=== DIAGNÓSTICO DO PC — Gerador de Slides v51 ===');
+  add('=== DIAGNÓSTICO DO PC — Gerador de Slides v52 ===');
   add('Data: ' + new Date().toLocaleString('pt-BR'));
   var mc = /Chrome\/([\d.]+)/.exec(navigator.userAgent);
   add('Navegador: ' + (mc ? 'Chrome ' + mc[1] : navigator.userAgent));
@@ -7106,6 +7115,11 @@ document.getElementById('importFile').addEventListener('change', async function(
     try{ data = JSON.parse(txt); }catch(err){ badJson++; continue; }
     var sf = parseSongFile(data);
     if(sf) songs.push(sf);
+    else if(data && data.formato === PACK_FILE_FORMAT && Array.isArray(data.musicas)){
+      var okPack = 0;
+      data.musicas.forEach(function(m){ if(m && Array.isArray(m.slides)){ songs.push({formato: SONG_FILE_FORMAT, musica: m}); okPack++; } });
+      if(!okPack) notValid++;
+    }
     else if(data && Array.isArray(data.songs)) libs.push(data);
     else notValid++;
   }
@@ -7171,7 +7185,7 @@ function claudeBgLabel(bg){
 function buildClaudeRequest(song, userNote){
   var L = [];
   var id = claudeRequestId(song);
-  L.push('=== PEDIDO DO GERADOR DE SLIDES (app v51) ===');
+  L.push('=== PEDIDO DO GERADOR DE SLIDES (app v52) ===');
   L.push('Claude, este pedido vem do app "Gerador de Slides Animados" (vídeos de letra animada para importar no Holyrics; projeto do Dulirio, ministério de louvor). Responda sempre em português do Brasil.');
   L.push('');
   L.push('O QUE FAZER (padrão: o usuário NÃO precisa escrever nada)');
@@ -7774,7 +7788,7 @@ function songFileObject(song){
   /* só a música (nunca a chave do Vagalume nem as outras músicas) */
   var copy = JSON.parse(JSON.stringify(song));
   delete copy.exportSig;   /* v45: "o que já foi gerado" vale só neste aparelho */
-  return { formato: SONG_FILE_FORMAT, versao: 1, app: 'v51', exportadoEm: new Date().toISOString(), musica: copy };
+  return { formato: SONG_FILE_FORMAT, versao: 1, app: 'v52', exportadoEm: new Date().toISOString(), musica: copy };
 }
 function songFileBase(song){ return 'musica-' + folderNameFromTitle(song.title || 'Sem título'); }
 function parseSongFile(data){
@@ -7823,6 +7837,50 @@ async function sendSong(song){
   downloadTextFile(base + '.json', text, 'application/json');
   toast('Arquivo da música baixado (' + fmtMB(new Blob([text]).size) + ') — envie por WhatsApp ou e-mail.');
 }
+
+/* v52 — vários de uma vez: um arquivo só com as músicas marcadas */
+var PACK_FILE_FORMAT = 'slides-holyrics-musicas';
+function packSelectedSongs(){ return (state.songs || []).filter(function(sg){ return packPick[sg.id]; }); }
+function updatePackUi(){
+  var b = document.getElementById('btnPackSend'); if(!b) return;
+  var n = packSelectedSongs().length;
+  b.disabled = n === 0;
+  b.textContent = n ? '📤 Enviar ' + n + (n === 1 ? ' marcada' : ' marcadas') : '📤 Enviar marcadas';
+}
+function bindPackPicks(list){
+  list.querySelectorAll('.song-pick').forEach(function(c){
+    c.addEventListener('change', function(){ if(c.checked) packPick[c.dataset.id] = true; else delete packPick[c.dataset.id]; updatePackUi(); });
+  });
+  updatePackUi();
+}
+function packFileObject(songs){
+  return { formato: PACK_FILE_FORMAT, versao: 1, app: 'v52', exportadoEm: new Date().toISOString(), musicas: songs.map(function(sg){ var c = JSON.parse(JSON.stringify(sg)); delete c.exportSig; return c; }) };
+}
+async function sendSongsPack(songs){
+  if(!songs.length){ toast('Marque pelo menos uma música.'); return; }
+  var text = JSON.stringify(packFileObject(songs));
+  var d = new Date(), pad = function(x){ return (x < 10 ? '0' : '') + x; };
+  var base = 'musicas-' + songs.length + '-' + d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  try{
+    if(navigator.share && navigator.canShare){
+      var f = new File([text], base + '.txt', {type:'text/plain'});
+      if(navigator.canShare({files:[f]})){
+        await navigator.share({files:[f], title: songs.length + (songs.length === 1 ? ' música' : ' músicas')});
+        return;
+      }
+    }
+  }catch(err){
+    if(err && err.name === 'AbortError') return;
+  }
+  downloadTextFile(base + '.json', text, 'application/json');
+  toast('Arquivo com ' + songs.length + (songs.length === 1 ? ' música baixado' : ' músicas baixado') + ' (' + fmtMB(new Blob([text]).size) + ') — envie por WhatsApp ou e-mail.');
+}
+document.getElementById('btnPackAll').addEventListener('click', function(){
+  (state.songs || []).forEach(function(sg){ if((sg.slides || []).length && !/^Exemplo — pode apagar/.test(String(sg.title || ''))) packPick[sg.id] = true; });
+  renderSongsList();
+});
+document.getElementById('btnPackNone').addEventListener('click', function(){ packPick = {}; renderSongsList(); });
+document.getElementById('btnPackSend').addEventListener('click', function(){ sendSongsPack(packSelectedSongs()); });
 
 /* ---- cartão "Seus dados neste aparelho": quantas músicas, quanto ocupa, proteção contra limpeza, offline pronto ---- */
 var swState = { controlled: false };
