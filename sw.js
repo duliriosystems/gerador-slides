@@ -2,7 +2,7 @@
    - Abre sempre a versão mais nova quando há internet (rede primeiro, com limite de tempo).
    - Sem internet (ou rede lenta demais), abre a última cópia guardada.
    - A VERSÃO abaixo muda a cada publicação: é isso que faz o app avisar "Nova versão disponível". */
-const VERSAO = 'v49';
+const VERSAO = 'v50';
 const CACHE = 'slides-' + VERSAO;
 const LIMITE_REDE_MS = 4000;
 const ESSENCIAIS = ['./', './index.html', './manifest.webmanifest',

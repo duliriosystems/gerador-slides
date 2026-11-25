@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gerador de Slides Animados v48</title>
+<title>Gerador de Slides Animados v49</title>
 <meta name="theme-color" content="#0B0C10">
 <meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
@@ -177,6 +177,11 @@
   .sceneCard img{width:100%;height:72px;object-fit:cover;display:block;background:#000;}
   .sceneCard span{display:block;padding:.3rem .45rem;font-size:.68rem;line-height:1.25;font-weight:600;}
   .sceneCard:hover{border-color:var(--gold);}
+  /* v49: fundos em vídeo da pasta */
+  .fundoThumb{width:100%;height:72px;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .fundoThumb img{width:100%;height:72px;object-fit:cover;display:block;}
+  .sceneCard .fundoThumb span{padding:0;font-size:.64rem;font-weight:400;}
+  .sceneCard small{font-weight:400;color:var(--muted);font-size:.62rem;}
   .sceneCard.active{border-color:var(--gold);color:var(--text);}
   .sugItem{display:flex;align-items:center;gap:.7rem;padding:.6rem .7rem;border:1px solid var(--line);border-radius:10px;background:var(--panel-3);flex-wrap:wrap;}
   .sugItem .sugThumb{width:56px;height:35px;border-radius:5px;object-fit:cover;background:#000;border:1px solid var(--line);}
@@ -300,7 +305,7 @@
     <div class="brand">
       <span class="dot"></span>
       <div>
-        <b>Gerador de Slides Animados</b> <span class="badge" style="vertical-align:middle;">v48</span>
+        <b>Gerador de Slides Animados</b> <span class="badge" style="vertical-align:middle;">v49</span>
         <small id="saveStatus">salvo ✓</small>
       </div>
     </div>
@@ -344,6 +349,22 @@
       </div>
     </details>
     <div class="stack" id="songsList"></div>
+    <div class="card" id="fundosCard">
+      <div class="row" style="justify-content:space-between;align-items:flex-start;gap:.6rem;flex-wrap:wrap;">
+        <div style="min-width:0;flex:1 1 16rem;">
+          <b style="font-size:.9rem;">🎬 Fundos em vídeo (pasta)</b>
+          <div class="statusLine" id="fundosStatus"></div>
+          <div class="statusLine" id="fundosHint" style="display:none;"></div>
+          <label id="fundosAutoWrap" style="display:none;font-size:.78rem;margin-top:.3rem;"><input type="checkbox" id="fundosAutoChk"> Usar vídeos da pasta nas sugestões automáticas (⚡ e 🎨)</label>
+        </div>
+        <div class="row wrap" style="gap:.4rem;">
+          <button class="btn btn-primary" id="btnFundosPick" type="button">📂 Escolher pasta dos fundos</button>
+          <button class="btn btn-ghost" id="btnFundosPerm" type="button" style="display:none;">🔓 Permitir</button>
+          <button class="btn btn-ghost" id="btnFundosRescan" type="button" style="display:none;">🔄 Reler pasta</button>
+          <button class="btn btn-ghost" id="btnFundosForget" type="button" style="display:none;">✖ Esquecer</button>
+        </div>
+      </div>
+    </div>
     <div class="card dataCard" id="dataCard">
       <div class="row" style="justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
         <div style="min-width:0;flex:1 1 14rem;">
@@ -890,6 +911,17 @@
       </div>
     </details>
 
+    <details class="helpSection">
+      <summary>Fundos em vídeo da sua pasta (o pacote que você comprou)</summary>
+      <div class="helpBody">
+        <p><b>Como ligar:</b> na aba <b>Músicas</b>, no cartão <b>🎬 Fundos em vídeo (pasta)</b>, toque em <b>Escolher pasta dos fundos</b> e escolha a subpasta onde estão os vídeos (uma vez só; o Chrome não deixa escolher <i>Downloads</i>, <i>Documentos</i> ou <i>Área de Trabalho</i> direto — ponha os vídeos numa subpasta). O app guarda só o <b>endereço</b> da pasta e miniaturas pequenas: os vídeos não entram no app nem vão pra internet.</p>
+        <p><b>Escolher à mão:</b> Editar música → Fundo → <b>Vídeos da pasta</b>. Filtre por tema (cruz, mar, luz…) ou energia, digite parte do nome, toque num vídeo ou use <b>🎲 Sortear destes</b>. Vale também no ⚙ de cada slide.</p>
+        <p><b>Automático (e dá pra desligar):</b> o <b>⚡ Montar tudo sozinho</b> e o <b>🎨 Sugerir pelo tema</b> escolhem um vídeo da pasta quando o título ou a letra tem um tema conhecido (cruz, ressurreição, Natal, mar, montanha, luz…). Sem tema reconhecido continua o azul padrão. Pra voltar às cenas animadas, desmarque <i>Usar vídeos da pasta nas sugestões automáticas</i> no cartão 🎬.</p>
+        <p><b>Loop sem emenda:</b> o vídeo de fundo toca por cima dos 16 s do slide; nos <b>2 primeiros segundos</b> o app faz uma dissolução suave com o trecho que viria depois do fim, para o Holyrics repetir o arquivo sem “pulo”. A velocidade/voltas do fundo (Devagar/Médio/Rápido) <b>não se aplicam</b> a vídeos.</p>
+        <p><b>Pedir ajuda ao Claude:</b> com a pasta ligada, o pedido inclui a lista dos vídeos com os temas, e a resposta do Claude pode trazer <code>"fundo": "pasta:NomeDoVideo"</code>.</p>
+        <p><b>Cuidados:</b> se mover ou renomear um vídeo, o app avisa ao gerar — toque em <b>🔄 Reler pasta</b> e troque o fundo. Cada computador guarda a sua pasta (no PC da igreja, escolha de novo). Vídeos de 1080p pedem um pouco mais de tempo pra gerar que as cenas.</p>
+      </div>
+    </details>
     <details class="helpSection">
       <summary>Instalar o app, usar sem internet e levar músicas pra outro aparelho</summary>
       <div class="helpBody">
@@ -2261,7 +2293,7 @@ function suggestThemeBg(title, lyricsText){
   if(!ok) return null;
   var best = top.rule.def, bestScore = -1;
   Object.keys(top.sceneScore).forEach(function(k){ if(top.sceneScore[k] > bestScore){ best = k; bestScore = top.sceneScore[k]; } });
-  return { tema: top.rule.tema, scene: best, label: (SCENES_BY_KEY[best] || {}).label || best,
+  return { tema: top.rule.tema, total: top.total, scene: best, label: (SCENES_BY_KEY[best] || {}).label || best,
            words: top.words.slice(0,4), where: top.inTitle && top.inLyrics ? 'título e na letra' : (top.inTitle ? 'título' : 'letra') };
 }
 function songLyricsText(song){
@@ -2272,6 +2304,13 @@ function songLyricsText(song){
 /* manual=true: botão "Sugerir pelo tema" (sem tema reconhecido, não mexe no fundo atual) */
 function applyThemeToSong(song, title, lyrics, manual){
   var sug = suggestThemeBg(title, lyrics);
+  var vsug = suggestFundoVideo(title, lyrics);      /* v49: vídeo da pasta pelo tema (só se a pasta foi escolhida e a opção está ligada) */
+  if(vsug && (!sug || vsug.total >= sug.total)){
+    song.defaultBg = {type:'pasta', value:vsug.path};
+    song.bgNote = 'Fundo em vídeo da sua pasta ("' + vsug.name + '") pelo tema ' + vsug.tema + ': achei ' + vsug.words.map(function(w){ return '"' + w + '"'; }).join(', ') + ' no ' + vsug.where + ' (' + vsug.count + ' vídeo(s) combinam; o app sorteou um). Pode trocar acima ou desligar "usar vídeos da pasta" no cartão 🎬 da aba Músicas.';
+    song.bgAuto = !manual;
+    return { tema: vsug.tema, scene: null, video: vsug.path, label: 'vídeo "' + vsug.name + '"', words: vsug.words, where: vsug.where };
+  }
   if(sug){
     song.defaultBg = {type:'scene', value:sug.scene};
     song.bgNote = 'Fundo sugerido pelo tema ' + sug.tema + ': achei ' + sug.words.map(function(w){ return '"' + w + '"'; }).join(', ') + ' no ' + sug.where + '.';
@@ -2285,7 +2324,477 @@ function applyThemeToSong(song, title, lyrics, manual){
 function bgLabelText(bg){
   if(!bg) return 'sem fundo';
   if(bg.type === 'scene') return (SCENES_BY_KEY[bg.value] || {}).label || String(bg.value);
+  if(bg.type === 'pasta') return 'Vídeo da pasta: ' + (bg.value ? String(bg.value).split('/').pop().replace(FUNDOS_EXT, '') : '(nenhum escolhido)');
   return ({color:'Cor sólida', image:'Imagem', video:'Vídeo', texture:'Textura', colorflow:'Fluxo de cor (neutro)', none:'Preto'})[bg.type] || String(bg.type);
+}
+
+/* =========================================================================
+   v49 — FUNDOS EM VÍDEO DA PASTA
+   O usuário escolhe UMA vez a pasta com os vídeos (File System Access API); o app guarda só a REFERÊNCIA
+   (handle da pasta + lista de nomes + miniaturas pequenas) — nunca os vídeos. O fundo da música/slide vira
+   {type:'pasta', value:'<caminho relativo na pasta>'} e o vídeo é lido do disco na hora de desenhar/gerar.
+   Escolha manual sempre disponível; o ⚡/🎨 só sugere (e dá pra desligar no cartão da aba Músicas).
+   ========================================================================= */
+var FUNDOS_TAGS_RAW = [
+'EasterSunriseCalvaryDistantHD|cruz,pascoa|c','EasterSunriseCrossesHD|cruz,pascoa|c','EasterArtworkOpenTombNearHD|pascoa,ressurreicao|c','EasterArtworkTombClothHD|pascoa,ressurreicao|c',
+'EasterArtworkTombCrossWorshipHD|cruz,pascoa,louvor|c','GoodFridayArtworkCrossCityHD|cruz,sexta-santa|c','GoodFridayArtworkPeterHD|sexta-santa,oracao|c','golden-hour-cross-hd|cruz,trigo|c',
+'golden-hour-crosses-hd|cruz|c','golden-hour-jesus-hd|jesus,palavra,trigo|c','EasterArtworkJesusWitnessesHD|jesus,pascoa|c','Foggy Morning Cross - Medium - HD 1080|cruz,neblina|c',
+'FogRaysBlueCrossHD|cruz,luz|m','WorshipCrowdHandsGoldFastHD|louvor,adoracao,maos|a','FogRaysGoldWorshipHD|louvor,adoracao,luz|m','FogRaysPrayerKneelingHD|oracao,luz|c',
+'FogRaysBlueFastHD|luz|a','FogRaysGoldFastHD|luz|a','FogRaysPinkPurpleHD|luz|m','golden-hour-close-hd|natureza,trigo|c',
+'Foggy Morning Calm - Slow - HD 1080|natureza,neblina,montanha|c','Foggy Morning Flow - Slow - HD 1080|natureza,neblina,lago|c','Foggy Morning Fresh - Slow - HD 1080|natureza,montanha|c',
+'Foggy Morning Hope - Slow - HD 1080|natureza,floresta,neblina|c','Foggy Morning Life - Slow - HD 1080|natureza,arvore,por-do-sol|c','Foggy Morning Spring - Slow - HD 1080|natureza,lago,montanha|c',
+'Foggy Morning Summit - Subtle - HD 1080|montanha,neblina|c','DeepForestBouldersHD|floresta|c','DeepForestPathwayHD|floresta,caminho|c','DigitalAutumnBrightSkyHD|outono|c',
+'EpicAutumnAerialGoldenPinesHD|outono,aereo|c','EpicAutumnAerialSunflowerSunsetHD|girassol,por-do-sol,aereo|c','FallColorsForestRaysHD|outono,floresta,luz|c','FallColorsWaterReflectionsHD|outono,lago|c',
+'EpicSpringAerialMountainLakeHD|montanha,lago,aereo|c','EpicWinterAerialFogSunsetHD|inverno,montanha,aereo|c','EpicWinterAerialSunsetSlopesHD|inverno,montanha,aereo|c','DigitalMountainsCaveRaysHD|caverna,luz,3d|c',
+'DigitalMountainsLakeFlightHD|montanha,lago,3d|m','DigitalMountainsMorningRocksHD|montanha,3d|c','DigitalMountainsSoaringSunHD|montanha,por-do-sol,3d|m','DigitalWavesCoolOceanHD|mar,3d|c',
+'DigitalWavesOceanNightHD|mar,noite,3d|c','DigitalWavesSummerSunsetHD|mar,por-do-sol,3d|c','fireflies_field-HD 1080|noite,vagalumes|c','fireflies_tree_cover-HD 1080|noite,vagalumes,arvore|c',
+'BethlehemNightChristmasStarHD|natal,estrela,noite|c','BethlehemNightMangerHD|natal,manjedoura,noite|c','EasterTombLightRaysHD|pascoa,ressurreicao,luz|c','GoodFridayCrossRedFabricHD|cruz,sexta-santa|c',
+'GoodFridayTombLightningHD|sexta-santa,cruz|m','Coastal Dreams Calm - Slow - HD 1080|mar|c','Coastal Dreams Discover - Fast - HD 1080|mar,aereo|m','Coastal Dreams Edge - Medium - HD 1080|mar,aereo|c',
+'CountrysideCommunionElementsHD|ceia,comunhao|c','CountrysideFoggyTreetopsHD|natureza,neblina|c','CountrysideLakeBenchHD|lago,por-do-sol|c','CrucifixionCrossNightCloudsHD|cruz,sexta-santa,noite|c',
+'MajesticAerialRedOrangeHD|montanha,aereo|c','MajesticAerialReverseFlightHD|montanha,aereo|m','MistyPinesReverseFlightHD|floresta,neblina|c','MountainPinesCloseUpHD|floresta,montanha|c',
+'MountainPinesDockHD|lago,montanha|c','MountainPinesFlowerFieldHD|flores,montanha|c','MountainPinesLakeSunsetHD|lago,por-do-sol,montanha|c','MountainPinesRollingForestHD|floresta,montanha|c',
+'MountainPinesVibrantLakeHD|lago,montanha|c','PalmSundayJerusalemScrollingHD|domingo-de-ramos,jerusalem|c','PalmSundayJerusalemSunsetHD|domingo-de-ramos,jerusalem,por-do-sol|c','ethereal_forms_5-HD 1080|cruz,abstrato|c',
+'PaintSwirlGreyCrossHD|cruz,abstrato|m','Peaks_02_HD|montanha,nuvens|c','Resurrection Scenes Center - Medium - HD 1080|pascoa,ressurreicao|c','Resurrection Scenes Communion - Slow - HD 1080|ceia,comunhao|c',
+'Resurrection Scenes Darkness - Slow - HD 1080|sexta-santa,coroa-de-espinhos|c','Resurrection Scenes Death - Medium - HD 1080|sexta-santa,coroa-de-espinhos|c','ResurrectionCalvaryClothCloseupHD|cruz,pascoa|c','ResurrectionEmptyTombHD|pascoa,ressurreicao|c',
+'ResurrectionMountainSunsetHD|pascoa,montanha,por-do-sol|c','ResurrectionStoneRollsAwayHD|pascoa,ressurreicao|c','AquiferCrimsonHD|abstrato|m','Bokeh Twist Flare - Fast - HD 1080|abstrato,bokeh|a',
+'ChromaticHallwayPurpleSlowHD|abstrato,neon|m','colorful-cosmos-03-hd|abstrato,espaco|m','CosmicEarthStarsHD|espaco,estrelas|c','CrystallinePurpleCathedralHD|abstrato|a',
+'CrystallineWarmBurstHD|abstrato|a','luminance_1-HD 1080|abstrato|c','MirrorBallColorfulReflectedHD|abstrato,festa|a','OverflowRisingFireHD|abstrato,fogo|m',
+'PaintSwirlCoolSunsetHD|abstrato|m','Radial Beams Spin - Slow - HD 1080|abstrato,luz|a','Radial Beams Sunrise - Medium - HD 1080|abstrato,luz|m','RefractionCoolCrystalsHD|abstrato|m',
+'AquiferCathedralHD|abstrato|m','bokeh_glow_1-HD 1080|abstrato,bokeh|m','Bokeh Twist Hope - Fast - HD 1080|abstrato,bokeh|a','Bokeh Twist Life - Medium - HD 1080|abstrato,bokeh|m',
+'Bokeh Twist Rise - Medium - HD 1080|abstrato,bokeh|m','burst-outward-hd|abstrato,particulas|a','celebration-sky-01-hd|celebracao,fogos|a','celebration-sky-06-hd|celebracao,fogos|a',
+'celebration-sky-13-hd|celebracao,fogos|a','EmberBlueOrangeReflectHD|abstrato,fogo|m','EmberBlueSpiralHD|abstrato,fogo|m','EmberGlowingRibbonHD|abstrato,fogo|m',
+'EmberOrangeBlueSwirlHD|abstrato,fogo|m','EmberSpiritDoveHD|espirito-santo,pomba|m','GeoDepthsWarmBurstHD|abstrato|a','GeodesicPinkOrangeFastHD|abstrato,particulas|a',
+'GeodesicRedYellowFastHD|abstrato,particulas|a','IllumineCrossHD|cruz,abstrato|c','LightwaveBluePinkHD|abstrato|m','Luminous Pathways Cross - Medium - HD 1080|cruz,abstrato,neon|m',
+'FiberOpticAerialGoldHD|abstrato|a','FiberOpticPinkOrangeWavesHD|abstrato|a','fractal_glow_10-HD 1080|abstrato|m','LaserBlueCirclesLargeHD|abstrato,neon|m',
+'discipleship-jesus-hd|jesus,palavra|m','bright-patches-words-hd|palavra,biblia|m'
+];
+function fundoKey(n){ return String(n == null ? '' : n).replace(/^.*[\\\/]/, '').replace(/\.[a-z0-9]{2,4}$/i, '').trim().toLowerCase(); }
+var FUNDOS_TAGS = {};            /* chave (nome sem extensão, minúsculo) → {n, t:[temas], h:'calmo|medio|animado'} */
+(function(){
+  var HN = {c:'calmo', m:'medio', a:'animado'};
+  FUNDOS_TAGS_RAW.forEach(function(s){
+    var p = s.split('|');
+    FUNDOS_TAGS[fundoKey(p[0])] = {n:p[0], t:p[1] ? p[1].split(',') : [], h:HN[p[2]] || 'medio'};
+  });
+})();
+var FUNDOS_EXT = /\.(mp4|m4v|webm|mov)$/i;
+var fundos = { handle:null, perm:'prompt', index:[], thumbs:{}, urls:{}, auto:true, busy:false };
+var fundosFilter = { q:'', tag:'', h:'' };
+var fundosThumbQueue = [], fundosThumbRunning = false, fundosThumbDirty = false;
+
+function fundosLabel(e){ return e ? e.n.replace(FUNDOS_EXT, '') : ''; }
+function fundosEntryByPath(p){ for(var i = 0; i < fundos.index.length; i++){ if(fundos.index[i].p === p) return fundos.index[i]; } return null; }
+function fundosEntryByName(n){
+  var raw = String(n || '').trim();
+  for(var i = 0; i < fundos.index.length; i++){ if(fundos.index[i].p === raw) return fundos.index[i]; }
+  var k = fundoKey(raw);
+  for(var j = 0; j < fundos.index.length; j++){ if(fundos.index[j].k === k) return fundos.index[j]; }
+  return null;
+}
+function fundosTagsOf(e){ var d = e && FUNDOS_TAGS[e.k]; return d ? d.t : []; }
+function fundosEnergyOf(e){ var d = e && FUNDOS_TAGS[e.k]; return d ? d.h : ''; }
+
+async function fundosScan(dir){
+  var out = [];
+  async function walk(d, prefix, depth){
+    for await (var pair of d.entries()){
+      var nm = pair[0], h = pair[1];
+      if(nm.charAt(0) === '.') continue;
+      if(h.kind === 'directory'){ if(depth < 3) await walk(h, prefix + nm + '/', depth + 1); }
+      else if(FUNDOS_EXT.test(nm)){
+        var size = 0;
+        try{ size = (await h.getFile()).size; }catch(e){}
+        out.push({p:prefix + nm, n:nm, k:fundoKey(nm), s:size});
+      }
+    }
+  }
+  await walk(dir, '', 0);
+  out.sort(function(a, b){ return a.p.localeCompare(b.p, 'pt'); });
+  return out;
+}
+async function fundosSave(){
+  try{ await dbSet('fundosDirHandle', fundos.handle); await dbSet('fundosIndex', fundos.index); }
+  catch(e){ toast('Pasta escolhida, mas não consegui lembrar dela pra próxima vez.'); }
+}
+async function fundosInit(){
+  try{ var a = await dbGet('fundosAuto'); if(a === false) fundos.auto = false; }catch(e){}
+  if(typeof FS_OK !== 'undefined' && FS_OK){
+    try{
+      var h = await dbGet('fundosDirHandle');
+      if(h && h.kind === 'directory'){
+        fundos.handle = h;
+        var ix = await dbGet('fundosIndex'); fundos.index = Array.isArray(ix) ? ix : [];
+        var th = await dbGet('fundosThumbs'); fundos.thumbs = (th && typeof th === 'object') ? th : {};
+        try{ fundos.perm = await h.queryPermission({mode:'read'}); }catch(e){ fundos.perm = 'prompt'; }
+      }
+    }catch(e){}
+  }
+  fundosRenderCard();
+}
+/* precisa ser chamada dentro de um clique (o Chrome só abre o pedido de permissão com um toque do usuário) */
+async function fundosEnsurePerm(){
+  if(!fundos.handle) return false;
+  try{
+    var pm = await fundos.handle.queryPermission({mode:'read'});
+    if(pm !== 'granted') pm = await fundos.handle.requestPermission({mode:'read'});
+    fundos.perm = pm;
+  }catch(e){ fundos.perm = 'denied'; }
+  fundosRenderCard();
+  return fundos.perm === 'granted';
+}
+async function fundosGetFile(path){
+  if(!fundos.handle) throw new Error('A pasta dos fundos em vídeo ainda não foi escolhida neste aparelho. Escolha em "🎬 Fundos em vídeo" na aba Músicas — ou troque o fundo desta música.');
+  var pm = 'prompt';
+  try{ pm = await fundos.handle.queryPermission({mode:'read'}); }catch(e){}
+  if(pm !== 'granted'){ try{ pm = await fundos.handle.requestPermission({mode:'read'}); }catch(e){} }
+  if(pm !== 'granted') throw new Error('Sem permissão para ler a pasta dos fundos. Toque em "Permitir" no cartão 🎬 Fundos em vídeo (aba Músicas) e tente de novo.');
+  fundos.perm = 'granted';
+  var parts = String(path).split('/'), dir = fundos.handle;
+  try{
+    for(var i = 0; i < parts.length - 1; i++) dir = await dir.getDirectoryHandle(parts[i]);
+    var fh = await dir.getFileHandle(parts[parts.length - 1]);
+    return await fh.getFile();
+  }catch(e){
+    throw new Error('O vídeo de fundo "' + path + '" não está mais na pasta dos fundos (foi movido ou renomeado?). Troque o fundo ou toque em "Reler pasta" no cartão 🎬 da aba Músicas.');
+  }
+}
+async function fundosUrl(path){
+  var f = await fundosGetFile(path);
+  var c = fundos.urls[path];
+  if(c && c.size === f.size && c.mod === f.lastModified) return c.url;
+  if(c){ try{ URL.revokeObjectURL(c.url); }catch(e){} }
+  var url = URL.createObjectURL(f);
+  fundos.urls[path] = {url:url, size:f.size, mod:f.lastModified};
+  return url;
+}
+async function fundosChooseFolder(){
+  var h;
+  try{ h = await window.showDirectoryPicker({id:'fundosvideo', mode:'read', startIn:'videos'}); }
+  catch(err){
+    if(err && err.name === 'AbortError') return false;
+    toast('Não consegui usar essa pasta: ' + (err && err.message ? err.message : err) + ' (o Chrome não deixa escolher Downloads, Documentos ou Área de Trabalho direto — escolha uma subpasta com os vídeos).');
+    return false;
+  }
+  fundos.handle = h; fundos.perm = 'granted'; fundos.urls = {};
+  return await fundosRescan();
+}
+async function fundosRescan(){
+  if(!fundos.handle) return false;
+  if(!(await fundosEnsurePerm())){ toast('Sem permissão para ler a pasta dos fundos.'); return false; }
+  fundos.busy = true; fundosRenderCard();
+  try{ fundos.index = await fundosScan(fundos.handle); }
+  catch(e){ fundos.busy = false; fundosRenderCard(); toast('Não consegui ler a pasta: ' + (e && e.message ? e.message : e)); return false; }
+  fundos.busy = false;
+  await fundosSave();
+  fundosRenderCard();
+  var n = fundos.index.length;
+  toast(n ? (n + ' vídeo(s) na pasta "' + fundos.handle.name + '".') : 'Nenhum vídeo (.mp4, .mov, .webm) encontrado nessa pasta.');
+  return n > 0;
+}
+async function fundosForget(){
+  var ok = await confirmDialog('Esquecer a pasta dos fundos?', 'O app para de usar a pasta (os vídeos NÃO são apagados do computador). Músicas que usam um fundo da pasta ficam sem vídeo até você escolher a pasta de novo.');
+  if(!ok) return;
+  Object.keys(fundos.urls).forEach(function(k){ try{ URL.revokeObjectURL(fundos.urls[k].url); }catch(e){} });
+  fundos.handle = null; fundos.index = []; fundos.thumbs = {}; fundos.urls = {}; fundos.perm = 'prompt';
+  try{ await dbSet('fundosDirHandle', null); await dbSet('fundosIndex', []); await dbSet('fundosThumbs', {}); }catch(e){}
+  fundosRenderCard();
+  toast('Pasta dos fundos esquecida.');
+}
+
+/* ---- miniaturas (geradas uma vez, guardadas pequenas no navegador) ---- */
+function fundosThumbFor(e){ return fundos.thumbs[e.p + '|' + e.s] || null; }
+function fundosMakeThumb(e){
+  return fundosUrl(e.p).then(function(url){
+    return new Promise(function(res){
+      var v = document.createElement('video');
+      v.muted = true; v.playsInline = true; v.preload = 'auto';
+      var done = false, tm = null;
+      function fin(d){ if(done) return; done = true; clearTimeout(tm); try{ v.removeAttribute('src'); v.load(); }catch(_){} res(d); }
+      tm = setTimeout(function(){ fin(null); }, 9000);
+      v.onerror = function(){ fin(null); };
+      v.onloadedmetadata = function(){ try{ v.currentTime = Math.min(3, (v.duration || 6) * 0.15); }catch(_){ fin(null); } };
+      v.onseeked = function(){
+        try{
+          var c = document.createElement('canvas'); c.width = 192; c.height = 120;
+          var g = c.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, 192, 120);
+          drawCover(g, v, 192, 120);
+          fin(c.toDataURL('image/jpeg', 0.72));
+        }catch(_){ fin(null); }
+      };
+      v.src = url;
+    });
+  }).catch(function(){ return null; });
+}
+function fundosQueueThumb(e, alive, cb){
+  var have = fundosThumbFor(e);
+  if(have){ cb(have); return; }
+  fundosThumbQueue = fundosThumbQueue.filter(function(j){ return j.e.p !== e.p; });
+  fundosThumbQueue.push({e:e, alive:alive, cb:cb});
+  fundosRunThumbs();
+}
+async function fundosRunThumbs(){
+  if(fundosThumbRunning) return;
+  fundosThumbRunning = true;
+  try{
+    while(fundosThumbQueue.length){
+      var job = fundosThumbQueue.shift();
+      if(job.alive && !job.alive()) continue;
+      var d = fundosThumbFor(job.e);
+      if(!d){
+        d = await fundosMakeThumb(job.e);
+        if(d){ fundos.thumbs[job.e.p + '|' + job.e.s] = d; fundosThumbDirty = true; }
+      }
+      try{ job.cb(d); }catch(_){}
+      await new Promise(function(r){ setTimeout(r, 25); });
+    }
+  } finally {
+    fundosThumbRunning = false;
+    if(fundosThumbDirty){ fundosThumbDirty = false; try{ await dbSet('fundosThumbs', fundos.thumbs); }catch(e){} }
+  }
+}
+
+/* ---- cartão na aba Músicas ---- */
+function fundosRenderCard(){
+  var box = document.getElementById('fundosCard');
+  if(!box) return;
+  var st = document.getElementById('fundosStatus'), hint = document.getElementById('fundosHint');
+  var bPick = document.getElementById('btnFundosPick'), bPerm = document.getElementById('btnFundosPerm'),
+      bScan = document.getElementById('btnFundosRescan'), bForget = document.getElementById('btnFundosForget'),
+      auto = document.getElementById('fundosAutoWrap'), chk = document.getElementById('fundosAutoChk');
+  var ok = (typeof FS_OK !== 'undefined' && FS_OK);
+  [bPerm, bScan, bForget, auto].forEach(function(b){ b.style.display = 'none'; });
+  bPick.style.display = ok ? '' : 'none';
+  if(!ok){
+    st.textContent = 'Usar uma pasta de vídeos só funciona no Chrome ou no Edge, no computador.';
+    hint.style.display = 'none';
+    return;
+  }
+  hint.style.display = '';
+  if(!fundos.handle){
+    st.textContent = 'Nenhuma pasta escolhida.';
+    hint.innerHTML = 'Escolha <b>uma vez</b> a pasta onde estão seus vídeos de fundo (por exemplo o pacote que você comprou). O app só guarda o <b>endereço</b> da pasta e miniaturas pequenas — os vídeos ficam no computador e não pesam no app. O Chrome não deixa escolher <i>Downloads</i>, <i>Documentos</i> ou <i>Área de Trabalho</i> direto: coloque os vídeos numa <b>subpasta</b> e escolha ela.';
+    bPick.textContent = '📂 Escolher pasta dos fundos';
+    return;
+  }
+  var tagged = fundos.index.filter(function(e){ return !!FUNDOS_TAGS[e.k]; }).length;
+  st.innerHTML = fundos.busy ? 'Lendo a pasta <b>' + esc(fundos.handle.name) + '</b>…'
+    : '✓ Pasta: <b>' + esc(fundos.handle.name) + '</b> — ' + fundos.index.length + ' vídeo(s)' + (tagged ? ', ' + tagged + ' com tema conhecido' : '') +
+      (fundos.perm === 'granted' ? '' : ' <span style="color:var(--gold);">(o Chrome precisa da sua permissão pra ler)</span>');
+  hint.innerHTML = 'Em <b>Editar música → Fundo → Vídeos da pasta</b> você escolhe à mão (com filtro por tema). O ⚡ <i>Montar tudo sozinho</i> e o 🎨 <i>Sugerir pelo tema</i> também podem escolher um vídeo da pasta pelo tema do título/da letra — você sempre pode trocar.';
+  bPick.textContent = '📂 Trocar pasta';
+  bScan.style.display = ''; bForget.style.display = '';
+  if(fundos.perm !== 'granted') bPerm.style.display = '';
+  auto.style.display = ''; chk.checked = !!fundos.auto;
+}
+(function(){
+  var b = document.getElementById('btnFundosPick');
+  if(!b) return;
+  b.addEventListener('click', function(){ fundosChooseFolder(); });
+  document.getElementById('btnFundosPerm').addEventListener('click', function(){ fundosEnsurePerm(); });
+  document.getElementById('btnFundosRescan').addEventListener('click', function(){ fundosRescan(); });
+  document.getElementById('btnFundosForget').addEventListener('click', function(){ fundosForget(); });
+  document.getElementById('fundosAutoChk').addEventListener('change', function(e){
+    fundos.auto = !!e.target.checked;
+    dbSet('fundosAuto', fundos.auto).catch(function(){});
+  });
+})();
+
+/* ---- seletor (dentro de "Fundo" da música / do slide) ---- */
+function fundosFiltered(){
+  var q = fundosFilter.q.trim().toLowerCase();
+  return fundos.index.filter(function(e){
+    var tags = fundosTagsOf(e);
+    if(fundosFilter.tag && tags.indexOf(fundosFilter.tag) < 0) return false;
+    if(fundosFilter.h && fundosEnergyOf(e) !== fundosFilter.h) return false;
+    if(q){
+      var hay = (e.n + ' ' + tags.join(' ')).toLowerCase();
+      if(hay.indexOf(q) < 0) return false;
+    }
+    return true;
+  });
+}
+function fundosRenderPicker(container, bg, onChange){
+  var again = function(){ renderBgControl(container, bg, onChange); };
+  var box = document.createElement('div');
+  box.className = 'stack'; box.style.width = '100%';
+  container.appendChild(box);
+  if(typeof FS_OK === 'undefined' || !FS_OK){
+    box.innerHTML = '<span class="statusLine" style="margin:0;">Usar uma pasta de vídeos só funciona no Chrome ou no Edge, no computador.</span>';
+    return;
+  }
+  if(!fundos.handle){
+    var m = document.createElement('span'); m.className = 'statusLine'; m.style.margin = '0';
+    m.textContent = 'Você ainda não escolheu a pasta dos seus vídeos de fundo. Escolha uma vez (uma subpasta com os vídeos; o Chrome bloqueia Downloads/Documentos direto).';
+    var pb = document.createElement('button'); pb.type = 'button'; pb.className = 'btn btn-primary'; pb.textContent = '📂 Escolher pasta dos fundos';
+    pb.addEventListener('click', function(){ fundosChooseFolder().then(again); });
+    box.appendChild(m); box.appendChild(pb);
+    return;
+  }
+  var head = document.createElement('div'); head.className = 'statusLine'; head.style.margin = '0';
+  var cur = bg.value ? fundosEntryByPath(bg.value) : null;
+  head.innerHTML = bg.value
+    ? ('Fundo escolhido: <b>' + esc(fundosLabel(cur) || String(bg.value)) + '</b>' + (cur ? '' : ' <span style="color:var(--gold);">— não está na lista da pasta (foi movido? toque em 🔄 Reler pasta na aba Músicas)</span>'))
+    : 'Nenhum vídeo escolhido ainda. Toque em um abaixo.';
+  box.appendChild(head);
+  if(fundos.perm !== 'granted'){
+    var pr = document.createElement('button'); pr.type = 'button'; pr.className = 'btn btn-ghost'; pr.textContent = '🔓 Permitir ler a pasta (' + fundos.handle.name + ')';
+    pr.addEventListener('click', function(){ fundosEnsurePerm().then(again); });
+    box.appendChild(pr);
+  }
+  if(!fundos.index.length){
+    var em = document.createElement('span'); em.className = 'statusLine'; em.style.margin = '0';
+    em.textContent = 'A lista de vídeos está vazia. Toque em 🔄 Reler pasta no cartão 🎬 da aba Músicas.';
+    box.appendChild(em);
+    return;
+  }
+  /* filtros */
+  var frow = document.createElement('div'); frow.className = 'row wrap';
+  var qi = document.createElement('input'); qi.type = 'text'; qi.placeholder = 'Filtrar por nome ou tema (cruz, mar, luz…)'; qi.value = fundosFilter.q;
+  qi.style.cssText = 'flex:1 1 12rem;min-width:0;';
+  var rnd = document.createElement('button'); rnd.type = 'button'; rnd.className = 'btn btn-ghost'; rnd.textContent = '🎲 Sortear destes';
+  frow.appendChild(qi); frow.appendChild(rnd);
+  box.appendChild(frow);
+  var chips = document.createElement('div'); chips.className = 'row wrap';
+  box.appendChild(chips);
+  var grid = document.createElement('div'); grid.className = 'sceneGrid';
+  box.appendChild(grid);
+  var count = document.createElement('div'); count.className = 'statusLine'; count.style.margin = '0';
+  box.appendChild(count);
+
+  var tagCount = {};
+  fundos.index.forEach(function(e){ fundosTagsOf(e).forEach(function(t){ tagCount[t] = (tagCount[t] || 0) + 1; }); });
+  var tagList = Object.keys(tagCount).sort(function(a, b){ return tagCount[b] - tagCount[a] || a.localeCompare(b); }).slice(0, 16);
+  function chip(label, active, fn){
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'segBtn' + (active ? ' active' : ''); b.textContent = label;
+    b.addEventListener('click', fn); chips.appendChild(b);
+  }
+  function drawChips(){
+    chips.innerHTML = '';
+    chip('Todos', !fundosFilter.tag && !fundosFilter.h, function(){ fundosFilter.tag = ''; fundosFilter.h = ''; paint(); });
+    tagList.forEach(function(t){ chip(t + ' (' + tagCount[t] + ')', fundosFilter.tag === t, function(){ fundosFilter.tag = (fundosFilter.tag === t) ? '' : t; paint(); }); });
+    [['calmo', 'calmo'], ['medio', 'médio'], ['animado', 'animado']].forEach(function(p){
+      chip('⚡ ' + p[1], fundosFilter.h === p[0], function(){ fundosFilter.h = (fundosFilter.h === p[0]) ? '' : p[0]; paint(); });
+    });
+  }
+  function paint(){
+    drawChips();
+    var list = fundosFiltered();
+    grid.innerHTML = '';
+    count.textContent = list.length + ' de ' + fundos.index.length + ' vídeo(s). Os vídeos de 30 s entram em loop sem emenda (os 2 primeiros segundos de cada slide fazem uma dissolução suave com o trecho que viria depois do fim).';
+    list.forEach(function(e){
+      var card = document.createElement('button'); card.type = 'button';
+      card.className = 'sceneCard' + (bg.value === e.p ? ' active' : '');
+      var tags = fundosTagsOf(e), en = fundosEnergyOf(e);
+      card.innerHTML = '<div class="fundoThumb"><span>carregando…</span></div><span>' + esc(fundosLabel(e)) + (tags.length ? '<br><small>' + esc(tags.slice(0, 3).join(' · ')) + (en ? ' · ' + esc(en) : '') + '</small>' : '') + '</span>';
+      card.addEventListener('click', function(){ onChange({type:'pasta', value:e.p}); });
+      grid.appendChild(card);
+      fundosQueueThumb(e, function(){ return card.isConnected; }, function(d){
+        var holder = card.querySelector('.fundoThumb');
+        if(!holder) return;
+        if(d){ holder.innerHTML = '<img alt="" src="' + d + '">'; }
+        else { holder.firstChild.textContent = 'sem miniatura'; }
+      });
+    });
+  }
+  qi.addEventListener('input', function(){ fundosFilter.q = qi.value; paint(); });
+  rnd.addEventListener('click', function(){
+    var list = fundosFiltered();
+    if(!list.length){ toast('Nenhum vídeo nesse filtro.'); return; }
+    onChange({type:'pasta', value:pickRandom(list).p});
+  });
+  paint();
+}
+
+/* ---- ⚡/🎨: sugestão de vídeo da pasta pelo tema (título 5 pts por palavra; letra 1 pt; mesma regra de aceitação das cenas) ---- */
+var FUNDO_THEMES = [
+  {tema:'Cruz', tags:['cruz','sexta-santa'], words:['cruz','cruzes','calvario','crucificado','crucificou','crucificacao','crucifixo','golgota'], weak:['sangue']},
+  {tema:'Ressurreição', tags:['ressurreicao','pascoa'], words:['ressuscitou','ressurreicao','ressurreto','ressuscitar','tumulo','sepulcro','pascoa'], weak:['vive','vivo']},
+  {tema:'Sexta-feira santa', tags:['sexta-santa','coroa-de-espinhos','cruz'], words:['espinhos','espinho','cordeiro','sacrificio','paixao','flagelado'], weak:[]},
+  {tema:'Natal', tags:['natal','manjedoura','estrela'], words:['natal','belem','manjedoura','menino','presepio'], weak:['nasceu']},
+  {tema:'Espírito Santo', tags:['espirito-santo','pomba'], words:['pomba','consolador','pentecostes'], weak:['espirito']},
+  {tema:'Oração', tags:['oracao'], words:['oracao','oracoes','orar','joelhos','clamor','clamo','clamar','intercessao'], weak:[]},
+  {tema:'Louvor e adoração', tags:['louvor','adoracao','maos'], words:['adoracao','adorar','adoro','adoramos','adorador','louvor','louvar','louvo','louvamos','aleluia'], weak:[]},
+  {tema:'Celebração', tags:['celebracao','fogos','festa'], words:['celebrar','celebracao','festa','vitoria','venceu','vencedor','alegria','pular','danca','dancar'], weak:[]},
+  {tema:'Mar', tags:['mar'], words:['mar','mares','oceano','oceanos','onda','ondas','tempestade','barco','navegar','aguas'], weak:[]},
+  {tema:'Montanha', tags:['montanha','aereo'], words:['monte','montes','montanha','montanhas','serra','pico'], weak:['vale']},
+  {tema:'Lago e rio', tags:['lago'], words:['lago','rio','rios','riacho','fonte','nascente'], weak:['agua']},
+  {tema:'Natureza', tags:['natureza','floresta','flores','trigo','arvore'], words:['campo','campos','floresta','arvore','arvores','flor','flores','jardim','vinha','semente','colheita','trigo','pastos','verdes'], weak:[]},
+  {tema:'Noite e estrelas', tags:['noite','estrela','estrelas','vagalumes'], words:['noite','noites','estrela','estrelas','lua','madrugada','escuridao'], weak:['ceu']},
+  {tema:'Fogo', tags:['fogo'], words:['fogo','fogueira','arde','arder','ardera','ardente','brasa','brasas','chamas','incendeia'], weak:['chama']},
+  {tema:'Caminho', tags:['caminho','floresta'], words:['caminho','caminhos','caminhar','caminhada','jornada','estrada','trilha'], weak:[]},
+  {tema:'Ceia', tags:['ceia','comunhao'], words:['ceia','comunhao','pao','vinho'], weak:[]},
+  {tema:'Luz', tags:['luz'], words:['luz','luzes','brilha','brilhar','brilho','resplandece','clareia','amanhecer','alvorada'], weak:[]},
+  {tema:'Jesus', tags:['jesus'], words:[], weak:['jesus','cristo','yeshua','nazareno']},
+  {tema:'Palavra', tags:['palavra','biblia'], words:['biblia','escrituras','escritura'], weak:['palavra']},
+  {tema:'Entrada em Jerusalém', tags:['domingo-de-ramos','jerusalem'], words:['hosana','jerusalem','ramos','jumentinho'], weak:[]},
+  {tema:'Universo', tags:['espaco','estrelas'], words:['universo','galaxia','cosmos','planeta','espaco'], weak:[]}
+];
+function suggestFundoVideo(title, lyricsText){
+  if(!fundos.auto || !fundos.handle) return null;
+  var tagged = fundos.index.filter(function(e){ return fundosTagsOf(e).length > 0; });
+  if(!tagged.length) return null;
+  var tTok = themeTokens(title), lTok = themeTokens(lyricsText);
+  var res = FUNDO_THEMES.map(function(th){
+    var r = {th:th, title:0, lyrics:0, words:[], inTitle:false, inLyrics:false};
+    function hit(tok, inTitle){
+      var isStrong = th.words.indexOf(tok.norm) >= 0, isWeak = th.weak.indexOf(tok.norm) >= 0;
+      if(!isStrong && !isWeak) return;
+      if(isWeak && !inTitle) return;              /* palavra ambígua: só vale no título */
+      if(inTitle){ r.title += 5; r.inTitle = true; } else { r.lyrics += 1; r.inLyrics = true; }
+      if(r.words.indexOf(tok.orig) < 0) r.words.push(tok.orig);
+    }
+    tTok.forEach(function(t){ hit(t, true); });
+    lTok.forEach(function(t){ hit(t, false); });
+    r.total = r.title + r.lyrics;
+    return r;
+  }).filter(function(r){ return r.total > 0; }).sort(function(a, b){ return b.total - a.total; });
+  if(!res.length) return null;
+  var top = res[0], second = res[1] ? res[1].total : 0;
+  var ok = (top.title > 0 && top.total > second) || (top.lyrics >= 4 && top.total - second >= 2);
+  if(!ok) return null;
+  var best = 0, cands = [];
+  tagged.forEach(function(e){
+    var ov = fundosTagsOf(e).filter(function(t){ return top.th.tags.indexOf(t) >= 0; }).length;
+    if(ov > best){ best = ov; cands = [e]; } else if(ov === best && ov > 0){ cands.push(e); }
+  });
+  if(!cands.length) return null;
+  var pick = pickRandom(cands);
+  return { tema: top.th.tema, path: pick.p, name: fundosLabel(pick), words: top.words.slice(0, 4), total: top.total, count: cands.length,
+           where: top.inTitle && top.inLyrics ? 'título e na letra' : (top.inTitle ? 'título' : 'letra') };
+}
+
+/* ---- loop sem emenda: nos primeiros X s do slide, dissolve com o trecho que viria DEPOIS do fim (V(L+t)) ----
+   saída(t) = a·V(t) + (1−a)·V(L+t), a = smoothstep(t/X) para t<X; no fim (t→L) o quadro é V(L) = o primeiro quadro (a=0). */
+function pastaMakeState(v1, v2, w, h, totalMs){
+  var L = Math.max(1, totalMs / 1000);
+  var mix = document.createElement('canvas'); mix.width = w; mix.height = h;
+  return { v1:v1, v2:v2, mix:mix, mctx:mix.getContext('2d'), L:L, X:Math.min(2, L / 4), w:w, h:h };
+}
+async function pastaFrameAt(S, tMs){
+  var D = S.v1.duration;
+  if(!(D > 0)) return S.v1;
+  var t = tMs / 1000;
+  await seekVideo(S.v1, t % D);
+  if(t >= S.X) return S.v1;
+  var u = t / S.X, a = u * u * (3 - 2 * u);
+  await seekVideo(S.v2, (S.L + t) % D);
+  var g = S.mctx;
+  g.globalAlpha = 1;
+  g.fillStyle = '#000'; g.fillRect(0, 0, S.w, S.h);
+  drawCover(g, S.v2, S.w, S.h);
+  g.globalAlpha = a;
+  drawCover(g, S.v1, S.w, S.h);
+  g.globalAlpha = 1;
+  return S.mix;
+}
+function loadPastaVideo(url, realtime){
+  var v = document.createElement('video');
+  v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
+  return new Promise(function(res, rej){
+    v.oncanplay = function(){ v.oncanplay = null; res(v); };
+    v.onerror = function(){ rej(new Error('Não foi possível carregar o vídeo de fundo da pasta (o Chrome não abriu o arquivo).')); };
+    v.src = url; v.load();
+  }).then(function(vv){ if(realtime){ try{ vv.play(); }catch(e){} } return vv; });
 }
 
 /* =========================================================================
@@ -2396,7 +2905,7 @@ document.querySelectorAll('nav.tabs button').forEach(function(b){
 function renderBgControl(container, bg, onChange){
   bg = bg || {type:'color', value:'#0B0C10'};
   container.innerHTML = '';
-  var types = [['scene','Cena animada'],['color','Cor'],['image','Imagem'],['video','Vídeo'],['texture','Textura'],['colorflow','Fluxo de cor'],['none','Nenhum (preto)']];
+  var types = [['scene','Cena animada'],['color','Cor'],['image','Imagem'],['video','Vídeo'],['pasta','Vídeos da pasta'],['texture','Textura'],['colorflow','Fluxo de cor'],['none','Nenhum (preto)']];
   var segWrap = document.createElement('div');
   segWrap.className = 'row wrap';
   types.forEach(function(t){
@@ -2462,6 +2971,8 @@ function renderBgControl(container, bg, onChange){
       thumb.className = 'thumb';
       container.appendChild(thumb);
     }
+  } else if(bg.type === 'pasta'){
+    fundosRenderPicker(container, bg, onChange);
   } else if(bg.type === 'texture'){
     var texWrap = document.createElement('div');
     texWrap.className = 'row';
@@ -3215,6 +3726,7 @@ async function prevDraw(row, idx, play, onlyIfChanged){
   var bg = item.bg, videoEl = null, imgEl = null, texCanvas = null;
   if(bg && bg.type === 'image' && bg.value) imgEl = await prevLoadImg(bg.value);
   else if(bg && bg.type === 'video' && bg.value) videoEl = await prevLoadVideo(bg.value);
+  else if(bg && bg.type === 'pasta' && bg.value){ try{ videoEl = await prevLoadVideo(await fundosUrl(bg.value)); box._pastaErr = ''; }catch(e){ videoEl = null; box._pastaErr = (e && e.message) ? e.message : 'fundo em vídeo indisponível'; } }      /* v49 */
   if(token !== box._tok || !box.isConnected) return;
   canvas.width = sz.w; canvas.height = sz.h;
   var ctx = canvas.getContext('2d');
@@ -3234,6 +3746,7 @@ async function prevDraw(row, idx, play, onlyIfChanged){
   var totalMs = Math.max(9000, animEnd + 2500), endAt = animEnd + 500;
   function paint(el){ drawFrame(ctx, sz.w, sz.h, item, layout, el, videoEl, imgEl, lineStarts, texCanvas, totalMs, speedMult); }
   if(info) info.textContent = item.noText ? 'slide sem letra — só o fundo' : 'prévia reduzida (' + sz.w + '×' + sz.h + '); o vídeo sai na resolução da aba Exportar';
+  if(info && bg && bg.type === 'pasta' && box._pastaErr) info.textContent = '⚠ ' + box._pastaErr;
   if(!play){ paint(endAt); return; }
   var t0 = performance.now();
   (function step(now){
@@ -4324,7 +4837,7 @@ async function runDiagnostic(setStatus){
   var L = [], wait = function(ms){ return new Promise(function(r){ setTimeout(r, ms || 0); }); };
   function add(x){ L.push(x); }
   var W = 1920, H = 1200, FPS = 24, HOLD = 16;
-  add('=== DIAGNÓSTICO DO PC — Gerador de Slides v48 ===');
+  add('=== DIAGNÓSTICO DO PC — Gerador de Slides v49 ===');
   add('Data: ' + new Date().toLocaleString('pt-BR'));
   var mc = /Chrome\/([\d.]+)/.exec(navigator.userAgent);
   add('Navegador: ' + (mc ? 'Chrome ' + mc[1] : navigator.userAgent));
@@ -5246,8 +5759,8 @@ function drawColorFlowBackground(ctx, w, h, groupIndex, isFirstOfGroup, elapsedM
    CANVAS DRAWING (background + rotated, staggered, mixed bold/script text)
    ========================================================================= */
 function drawCover(ctx, media, w, h){
-  var mw = media.videoWidth || media.naturalWidth || 0;
-  var mh = media.videoHeight || media.naturalHeight || 0;
+  var mw = media.videoWidth || media.naturalWidth || (media.tagName === 'CANVAS' ? media.width : 0) || 0;
+  var mh = media.videoHeight || media.naturalHeight || (media.tagName === 'CANVAS' ? media.height : 0) || 0;
   if(!mw || !mh) return;
   var scale = Math.max(w/mw, h/mh);
   var dw = mw*scale, dh = mh*scale;
@@ -5388,6 +5901,7 @@ function drawFrame(ctx, w, h, item, layout, elapsedMs, videoEl, imgEl, staggerMs
   }
   else if(bg && bg.type==='image' && imgEl){ drawCover(ctx, imgEl, w, h); }
   else if(bg && bg.type==='video' && videoEl){ drawCover(ctx, videoEl, w, h); }
+  else if(bg && bg.type==='pasta' && videoEl){ drawCover(ctx, videoEl, w, h); }      /* v49: vídeo da pasta (videoEl pode ser o canvas da dissolução do loop) */
   else if(bg && bg.type==='scene'){ drawSceneBg(ctx, w, h, bg.value, elapsedMs, totalMs, item); }
 
   if(cyc && !(bg && (bg.type==='colorflow' || bg.type==='scene'))){
@@ -5589,7 +6103,7 @@ async function prepareSlide(item, opts, realtime){
   previewWrap.appendChild(canvas);
   var ctx = canvas.getContext('2d');
 
-  var videoEl = null, imgEl = null;
+  var videoEl = null, imgEl = null, pastaV2 = null;
   if(item.bg && item.bg.type === 'video' && item.bg.value){
     videoEl = document.createElement('video');
     videoEl.muted = true; videoEl.loop = true; videoEl.playsInline = true;
@@ -5600,6 +6114,12 @@ async function prepareSlide(item, opts, realtime){
       videoEl.load();
     });
     if(realtime){ try{ await videoEl.play(); }catch(e){} }
+  } else if(item.bg && item.bg.type === 'pasta'){
+    /* v49: vídeo da pasta — lido do disco na hora; na gravação quadro a quadro usa 2 leitores (dissolução do loop) */
+    if(!item.bg.value) throw new Error('Esta música usa "Vídeos da pasta" como fundo, mas nenhum vídeo foi escolhido. Escolha um em Editar música → Fundo.');
+    var purl = await fundosUrl(item.bg.value);
+    videoEl = await loadPastaVideo(purl, realtime);
+    if(!realtime) pastaV2 = await loadPastaVideo(purl, false);
   } else if(item.bg && item.bg.type === 'image' && item.bg.value){
     imgEl = new Image();
     await new Promise(function(res, rej){
@@ -5639,7 +6159,7 @@ async function prepareSlide(item, opts, realtime){
   } else if(item.bg && item.bg.type === 'colorflow'){
     textureCanvas = makeDitherCanvas(opts.width, opts.height, hashStr(item.slideId));
   }
-  return { canvas:canvas, ctx:ctx, videoEl:videoEl, imgEl:imgEl, layout:layout, speedMult:speedMult, effStagger:effStagger, lineStarts:lineStarts, totalMs:totalMs, textureCanvas:textureCanvas };
+  return { pasta:(pastaV2 ? pastaMakeState(videoEl, pastaV2, opts.width, opts.height, totalMs) : null), canvas:canvas, ctx:ctx, videoEl:videoEl, imgEl:imgEl, layout:layout, speedMult:speedMult, effStagger:effStagger, lineStarts:lineStarts, totalMs:totalMs, textureCanvas:textureCanvas };
 }
 
 /* ---------- Gravação DIRETA em MP4 (H.264) com WebCodecs: quadro a quadro, sem tempo real,
@@ -5689,8 +6209,10 @@ async function renderSlideToMp4(item, opts, cfg, onProgress){
       if(exportCancel) throw makeCancelError();
       if(encErr) throw encErr;
       var elapsed = k * 1000 / fps;
-      if(P.videoEl && P.videoEl.duration > 0){ await seekVideo(P.videoEl, (elapsed / 1000) % P.videoEl.duration); }
-      drawFrame(P.ctx, opts.width, opts.height, item, P.layout, elapsed, P.videoEl, P.imgEl, P.lineStarts, P.textureCanvas, P.totalMs, P.speedMult);
+      var vMedia = P.videoEl;
+      if(P.pasta){ vMedia = await pastaFrameAt(P.pasta, elapsed); }       /* v49: vídeo da pasta com loop sem emenda */
+      else if(P.videoEl && P.videoEl.duration > 0){ await seekVideo(P.videoEl, (elapsed / 1000) % P.videoEl.duration); }
+      drawFrame(P.ctx, opts.width, opts.height, item, P.layout, elapsed, vMedia, P.imgEl, P.lineStarts, P.textureCanvas, P.totalMs, P.speedMult);
       var frame = new VideoFrame(P.canvas, { timestamp: Math.round(k * 1e6 / fps), duration: Math.round(1e6 / fps) });
       encoder.encode(frame, { keyFrame: k % (fps * 2) === 0 });
       frame.close();
@@ -5706,6 +6228,7 @@ async function renderSlideToMp4(item, opts, cfg, onProgress){
     muxer.finalize();
   } finally {
     try{ encoder.close(); }catch(e){}
+    if(P.pasta){ [P.pasta.v1, P.pasta.v2].forEach(function(v){ try{ v.removeAttribute('src'); v.load(); }catch(e){} }); }      /* v49: solta os leitores de vídeo */
   }
   if(onProgress) onProgress(1);
   return new Blob([muxer.target.buffer], {type:'video/mp4'});
@@ -5975,6 +6498,7 @@ function setExportProgress(current, total, label){
 }
 
 fsInit();
+fundosInit();
 
 document.getElementById('btnGenerate').addEventListener('click', async function(){
   if(program.length === 0){ toast('Carregue uma música primeiro.'); return; }
@@ -6014,6 +6538,10 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
     var fo = folderNameFromTitle(j.songTitle), w = (fsRun.written[fo] = fsRun.written[fo] || {});
     ['mp4', 'webm'].forEach(function(e){ w[exportFileName(j, e, numOffset)] = true; });
   });
+  if(jobs.some(function(j){ return j.bg && j.bg.type === 'pasta'; })){      /* v49: fundos em vídeo da pasta precisam de permissão de leitura (pedida aqui, dentro do clique) */
+    var okPasta = await fundosEnsurePerm();
+    if(!okPasta){ toast('Sem permissão para ler a pasta dos fundos em vídeo — nada foi gerado. Toque em Permitir quando o Chrome perguntar (ou troque o fundo).'); setExportProgress(0,0,''); genBtn.disabled = false; cancelBtn.style.display = 'none'; exportCancel = false; return; }
+  }
   var rp = exportRenderParams(), leBase = lineEntryFromControls();
   function jobOpts(it){
     var l = lineEntryOfItem(it, leBase);
@@ -6417,7 +6945,7 @@ function claudeBgLabel(bg){
 function buildClaudeRequest(song, userNote){
   var L = [];
   var id = claudeRequestId(song);
-  L.push('=== PEDIDO DO GERADOR DE SLIDES (app v48) ===');
+  L.push('=== PEDIDO DO GERADOR DE SLIDES (app v49) ===');
   L.push('Claude, este pedido vem do app "Gerador de Slides Animados" (vídeos de letra animada para importar no Holyrics; projeto do Dulirio, ministério de louvor). Responda sempre em português do Brasil.');
   L.push('');
   L.push('O QUE FAZER (padrão: o usuário NÃO precisa escrever nada)');
@@ -6445,6 +6973,9 @@ function buildClaudeRequest(song, userNote){
   L.push('- "exportacao" (decida tudo; o app preenche a aba Exportar): resolucao (use sempre "1920x1200", a melhor, no telão 16:10; só mude se o usuário pedir); fps (24; só use 30 se o usuário pedir); duracao (segundos por vídeo, 6 a 60; padrão 16 — o Holyrics repete cada arquivo em loop, então menos que 16 s repete a animação de entrada várias vezes; não mude sem motivo); velocidadeAnimacao ("suave" = padrão Meia Noite, "lenta", "normal", "rapida"); slideSemLetraInicial (true = gera o 00 SEM LETRA; padrão true); soFundo (false); loop (false; true = sem animação de entrada, o fundo fecha sem emenda em duracaoLoop segundos, 4 a 20); escurecerFundo (false: o Holyrics já trata a letra); velocidadeFundo ("auto" = a de cada música/slide; só force se o usuário pedir); qualidadeFundo (sempre "total"; só mude se o usuário pedir). A qualidade nunca deve ser reduzida por sua conta: a igreja projeta no telão.');
   L.push('- "layout" (em "musica"): "reto" (padrão Meia Noite) ou "solto" (antigo, tamanho e giro sorteados). Mantenha "reto" salvo pedido do usuário.');
   L.push('- "fundo" também aceita objeto: {"tipo":"cor","valor":"#112233"}, {"tipo":"textura","valor":"paper|grain|gradient|ember"}, {"tipo":"fluxo","valor":4} (paleta muda a cada N slides) ou {"tipo":"preto"}. Prefira as cenas animadas.');
+  if(fundos.handle && fundos.index.length){
+    L.push('- VÍDEOS DA PASTA DO USUÁRIO (v49): além das cenas, o usuário tem vídeos reais/animados numa pasta (lista em OPÇÕES VÁLIDAS, "fundoVideo"). Para usar um, escreva "pasta:<nome exato>" em "musica.fundo" ou no "fundo" de um slide (ex.: "pasta:EasterSunriseCrossesHD"). Prefira um vídeo quando o tema da letra combinar com os temas dele (cruz, ressurreição, mar, montanha, luz, louvor...) e a cena animada quando o tema for fogo/água/estrelas/amanhecer genéricos ou quando nenhum vídeo combinar. A velocidade/voltas do fundo NÃO valem para vídeos (o app cuida do loop sem emenda); a energia (calmo/medio/animado) serve de guia para o ritmo da música. Copie o nome exatamente; nome fora da lista é ignorado.');
+  }
   L.push('- Sem custos: nada de API paga. Só use as opções válidas listadas abaixo; valores fora da lista são ignorados pelo app.');
   L.push('- Se faltar informação para decidir (ex.: não há slides ainda), diga em "observacoes" o que falta em vez de inventar.');
   L.push('');
@@ -6466,6 +6997,12 @@ function buildClaudeRequest(song, userNote){
   L.push('');
   L.push('OPÇÕES VÁLIDAS');
   L.push('fundo (cena animada): ' + SCENES.map(function(sc){ return sc.key + ' = ' + sc.label + (sc.light ? ' [CLARA]' : ''); }).join('; '));
+  if(fundos.handle && fundos.index.length){
+    L.push('fundoVideo (vídeos da pasta do usuário; use "pasta:<nome>"; formato: nome [temas] energia): ' + fundos.index.slice(0, 250).map(function(e){
+      var tg = fundosTagsOf(e), en = fundosEnergyOf(e);
+      return fundosLabel(e) + (tg.length ? ' [' + tg.join(', ') + ']' : '') + (en ? ' ' + en : '');
+    }).join('; '));
+  }
   L.push('velocidade: devagar | medio | rapido');
   L.push('animacao: ' + ANIM_OPTIONS.join(' | '));
   L.push('efeito (da letra): ' + FX_LIST.map(function(f){ return f.key; }).join(' | '));
@@ -6567,7 +7104,11 @@ function applyClaudeResponse(song, o){
   function animOk(k){ return typeof k === 'string' && ANIM_OPTIONS.indexOf(k) >= 0; }
   function velOk(k){ return typeof k === 'string' && SPEED_PT[k]; }
   function bgSpec(f){   // v42: cena (texto) ou objeto {tipo:'cena|cor|textura|fluxo|preto', valor}
-    if(typeof f === 'string') return sceneOk(f) ? {type:'scene', value:f} : null;
+    if(typeof f === 'string'){
+      var pm = /^pasta:\s*(.+)$/i.exec(f.trim());
+      if(pm){ var pe = fundosEntryByName(pm[1]); return pe ? {type:'pasta', value:pe.p} : null; }      /* v49: vídeo da pasta do usuário */
+      return sceneOk(f) ? {type:'scene', value:f} : null;
+    }
     if(f && typeof f === 'object'){
       var tp = String(f.tipo || '').toLowerCase();
       if(tp === 'cena') return sceneOk(f.valor) ? {type:'scene', value:f.valor} : null;
@@ -6575,6 +7116,7 @@ function applyClaudeResponse(song, o){
       if(tp === 'textura') return TEXTURE_PRESETS.some(function(x){ return x.key === f.valor; }) ? {type:'texture', value:f.valor} : null;
       if(tp === 'fluxo'){ var nf = parseInt(f.valor, 10); return {type:'colorflow', value:(nf >= 1 && nf <= 50) ? nf : 4}; }
       if(tp === 'preto') return {type:'none', value:null};
+      if(tp === 'pasta'){ var pe2 = fundosEntryByName(f.valor); return pe2 ? {type:'pasta', value:pe2.p} : null; }      /* v49 */
     }
     return null;
   }
@@ -7006,7 +7548,7 @@ function songFileObject(song){
   /* só a música (nunca a chave do Vagalume nem as outras músicas) */
   var copy = JSON.parse(JSON.stringify(song));
   delete copy.exportSig;   /* v45: "o que já foi gerado" vale só neste aparelho */
-  return { formato: SONG_FILE_FORMAT, versao: 1, app: 'v48', exportadoEm: new Date().toISOString(), musica: copy };
+  return { formato: SONG_FILE_FORMAT, versao: 1, app: 'v49', exportadoEm: new Date().toISOString(), musica: copy };
 }
 function songFileBase(song){ return 'musica-' + folderNameFromTitle(song.title || 'Sem título'); }
 function parseSongFile(data){

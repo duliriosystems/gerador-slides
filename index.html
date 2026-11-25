@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gerador de Slides Animados v49</title>
+<title>Gerador de Slides Animados v50</title>
 <meta name="theme-color" content="#0B0C10">
 <meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
@@ -305,7 +305,7 @@
     <div class="brand">
       <span class="dot"></span>
       <div>
-        <b>Gerador de Slides Animados</b> <span class="badge" style="vertical-align:middle;">v49</span>
+        <b>Gerador de Slides Animados</b> <span class="badge" style="vertical-align:middle;">v50</span>
         <small id="saveStatus">salvo ✓</small>
       </div>
     </div>
@@ -414,7 +414,8 @@
         </label>
         <button class="btn btn-ghost" id="btnPasteClipboard" style="align-self:flex-start;">📋 Colar da área de transferência</button>
         <div class="row wrap">
-          <button class="btn btn-primary" id="btnAutoBuild" type="button" title="O app decide tudo sozinho: divide em slides, acha o refrão, escolhe o fundo pelo tema, o estilo e os tamanhos. O ↶ Desfazer volta.">⚡ Montar tudo sozinho</button>
+          <button class="btn btn-primary" id="btnAutoBuild" type="button" title="O app decide o que falta: acha o refrão, escolhe o fundo pelo tema, a palavra desfocada e os tamanhos. Se você já dividiu e editou os slides, ele USA os seus slides (nada é refeito); se ainda não tem slides, divide a letra também. O ↶ Desfazer volta.">⚡ Montar tudo sozinho</button>
+          <button class="btn btn-ghost" id="btnAutoRebuild" type="button" title="Joga fora os slides atuais e refaz tudo a partir da letra do campo (como o ⚡ fazia antes). O ↶ Desfazer volta.">↻ Refazer do zero</button>
           <button class="btn" id="btnSplitLyrics" title="Só separa a letra em slides — sem fundo, sem estilo, sem refrão automático.">Dividir em slides</button>
           <label class="field" style="flex-direction:row;align-items:center;gap:.4rem;">Versos por slide
             <select id="splitPerSlide">
@@ -754,7 +755,7 @@
           <li>Na aba <b>Músicas</b>, toque em <b>+ Nova música</b>.</li>
           <li>Dê um título, ou deixe em branco (a busca de letra preenche sozinha).</li>
           <li>Traga a letra de três jeitos: busque em <b>"Buscar letra"</b> (puxa de sites de letras), toque em <b>🌐 Google</b> pra abrir a busca numa aba e copiar de lá, ou cole manualmente em <b>"Colar letra completa"</b> — o botão <b>📋 Colar da área de transferência</b> cola automaticamente o que você copiou por último.</li>
-          <li>Use <b>Buscar letra</b>: as letras achadas aparecem numa <b>lista</b> na hora, cada uma marcada com <b>✓ letra pronta</b>. Toque na certa — a busca para e a letra vem <b>crua</b> no campo da letra, sem nada aplicado. Aí você escolhe: <b>⚡ Montar tudo sozinho</b> (o app divide em slides, acha o refrão, escolhe fundo, estilo e tamanhos — o ↶ Desfazer volta), <b>Dividir em slides</b> (só separa os versos; 1, 2 ou 3 por slide; o resto é com você) ou <b>🤝 Copiar pedido pro Claude</b>. Se nenhuma letra servir, toque em <b>🔎 Continuar pesquisando</b>. Música nova também nasce crua: fundo liso escuro e sem palavra desfocada.</li>
+          <li>Use <b>Buscar letra</b>: as letras achadas aparecem numa <b>lista</b> na hora, cada uma marcada com <b>✓ letra pronta</b>. Toque na certa — a busca para e a letra vem <b>crua</b> no campo da letra, sem nada aplicado. Aí você escolhe: <b>⚡ Montar tudo sozinho</b> (o app divide em slides, acha o refrão, escolhe fundo, estilo e tamanhos — o ↶ Desfazer volta; se você já dividiu e editou os slides, ele <b>usa os seus slides</b> e só aplica por cima o fundo, o refrão e os tamanhos; <b>↻ Refazer do zero</b> refaz tudo pela letra), <b>Dividir em slides</b> (só separa os versos; 1, 2 ou 3 por slide; o resto é com você) ou <b>🤝 Copiar pedido pro Claude</b>. Se nenhuma letra servir, toque em <b>🔎 Continuar pesquisando</b>. Música nova também nasce crua: fundo liso escuro e sem palavra desfocada.</li>
           <li>Toque em <b>Salvar música</b>.</li>
         </ol>
         <div class="tip">A letra buscada pode trazer marcações como "[Refrão]" ou notas extras de quem transcreveu — dá uma olhada antes de dividir em slides, senão isso também vira um slide.</div>
@@ -4059,11 +4060,12 @@ function lsPick(idx){
 function completeAutomaticSong(title, lyricsText, source, opts){
   var clean = String(lyricsText || '').replace(/\r\n/g,'\n').trim();
   var lines = clean.split('\n').map(function(line){return line.trim();}).filter(function(line){return line.length > 0;});
-  if(lines.length < 3){
+  var keep = !!(opts && opts.keepSlides);      /* v50: usa os slides que a pessoa já montou/editou; o app só aplica por cima */
+  if(!keep && lines.length < 3){
     document.getElementById('lyricsSearchStatus').textContent = 'A letra encontrada parece incompleta. Não salvei automaticamente.';
     return;
   }
-  document.getElementById('rawLyrics').value = clean;
+  if(!keep) document.getElementById('rawLyrics').value = clean;
   /* v43: título digitado por você vale mais que o da fonte; vazio (ou preenchido pelo app antes) → usa o da música escolhida */
   var tInp = document.getElementById('songTitleInput');
   var typedTitle = tInp.value.trim();
@@ -4075,11 +4077,23 @@ function completeAutomaticSong(title, lyricsText, source, opts){
   }
   tInp.classList.remove('needsTitle');
   editingSong.title = title;
-  editingSong.bgAuto = true; editingSong.ghostOn = true; editingSong.ghostAuto = true;     /* v48: "Montar tudo sozinho" = o app decide tudo */
-  refreshGhost(editingSong);
-  editingSong.slides = buildSlidesFromLyrics(clean, getSplitOptions());
-  selectedSlideIndices = new Set();
-  applyThemeToSong(editingSong, title, clean, false); renderSongBgControl();
+  var nRefKeep = 0, bgKept = false;
+  if(keep){
+    /* v50: os slides ficam EXATAMENTE como a pessoa deixou (texto, divisão, ordem, versos apagados). Por cima, só o que ainda não foi decidido à mão. */
+    nRefKeep = adoptAutoOnSlides(editingSong, document.getElementById('rawLyrics').value);
+    if(!editingSong.ghostOn && !editingSong.ghostWord){ editingSong.ghostOn = true; editingSong.ghostAuto = true; }
+    if(editingSong.ghostOn && editingSong.ghostAuto !== false) refreshGhost(editingSong);
+    selectedSlideIndices = new Set();
+    if(bgIsUntouched(editingSong)){ applyThemeToSong(editingSong, title, songLyricsText(editingSong) || clean, false); }
+    else { bgKept = true; editingSong.bgNote = 'Mantive o fundo que você já tinha escolhido.'; }
+    renderSongBgControl();
+  } else {
+    editingSong.bgAuto = true; editingSong.ghostOn = true; editingSong.ghostAuto = true;     /* v48: "Montar tudo sozinho" = o app decide tudo */
+    refreshGhost(editingSong);
+    editingSong.slides = buildSlidesFromLyrics(clean, getSplitOptions());
+    selectedSlideIndices = new Set();
+    applyThemeToSong(editingSong, title, clean, false); renderSongBgControl();
+  }
   var nSized = autoSizesForSong(editingSong);
   var idx = state.songs.findIndex(function(song){ return song.id === editingSong.id; });
   if(idx >= 0) state.songs[idx] = editingSong; else state.songs.push(editingSong);
@@ -4109,8 +4123,10 @@ function completeAutomaticSong(title, lyricsText, source, opts){
       document.getElementById('exportSourcePick').value = editingSong.id;
       renderExportBgNote();
     });
-    document.getElementById('lyricsSearchStatus').textContent = 'Pronto! "' + title + '" montada com ' + editingSong.slides.length + ' slides (' + source + ') e salva.' + (editingSong.bgNote ? ' ' + editingSong.bgNote : '') + (nSized ? ' Tamanhos das palavras do refrão: palpite do app (⇕ limpa a linha).' : '');
-    toast('Música montada e salva — ↶ Desfazer volta.');
+    document.getElementById('lyricsSearchStatus').textContent = keep
+      ? 'Pronto! Usei os seus ' + editingSong.slides.length + ' slides de "' + title + '" — nada foi refeito (versos apagados continuam apagados). Por cima: ' + (nRefKeep ? 'refrão marcado em ' + nRefKeep + ' slide(s)' : 'nenhum refrão novo achado') + (nSized ? ', tamanhos das palavras do refrão (palpite do app; ⇕ limpa a linha)' : '') + '. ' + (editingSong.bgNote || '') + ' Música salva.'
+      : 'Pronto! "' + title + '" montada com ' + editingSong.slides.length + ' slides (' + source + ') e salva.' + (editingSong.bgNote ? ' ' + editingSong.bgNote : '') + (nSized ? ' Tamanhos das palavras do refrão: palpite do app (⇕ limpa a linha).' : '');
+    toast(keep ? 'Usei os seus slides e apliquei o resto por cima — ↶ Desfazer volta.' : 'Música montada e salva — ↶ Desfazer volta.');
     try{ resEl.scrollIntoView({block:'nearest', behavior:'smooth'}); }catch(e){}
     return;
   }
@@ -4186,16 +4202,70 @@ function completeRawLyrics(title, lyricsText, source, opts){
   toast('Letra carregada, crua.');
   try{ resEl.scrollIntoView({block:'nearest', behavior:'smooth'}); }catch(e){}
 }
+/* v50 — ⚡ USA os slides que a pessoa já fez. Antes, ele sempre refazia tudo pela letra do campo e os versos apagados voltavam.
+   Regra: tem slide com texto e (campo da letra vazio OU os slides parecem ser dessa letra) → usa os slides e aplica por cima só o que ainda não foi decidido à mão
+   (refrão por trecho repetido, fundo pelo tema se ainda é o padrão, palavra desfocada, tamanhos do refrão — linhas com tamanho/destaque à mão ficam como estão).
+   Os slides não parecem ser da letra do campo (outra música) → pergunta antes de refazer. Saída de emergência: ↻ Refazer do zero. */
+function slidesHaveWork(song){
+  return !!(song && (song.slides || []).some(function(sl){ return !sl.semLetra && (sl.lines || []).some(function(l){ return normKey(l.text); }); }));
+}
+function slidesMatchLyrics(song, raw){
+  var rawN = normKey(raw), tot = 0, hit = 0;
+  (song.slides || []).forEach(function(sl){
+    if(sl.semLetra) return;
+    (sl.lines || []).forEach(function(l){ var k = normKey(l.text); if(!k) return; tot++; if(rawN.indexOf(k) >= 0) hit++; });
+  });
+  return tot > 0 && hit / tot >= 0.5;
+}
+function bgIsUntouched(song){
+  var b = song && song.defaultBg;
+  if(!b || (song && song.bgAuto === true)) return true;
+  return b.type === 'color' && String(b.value).toUpperCase() === '#0B0C10';       /* o fundo com que a música nasce crua */
+}
+function countOccurrences(hay, needle){
+  if(!needle) return 0;
+  var n = 0, i = 0;
+  while((i = hay.indexOf(needle, i)) >= 0){ n++; i += needle.length; }
+  return n;
+}
+/* marca como refrão (estilo energia + tamanhos + fundo B do preset) os slides cujo texto se repete na letra; respeita quem já tem estilo escolhido à mão */
+function adoptAutoOnSlides(song, rawText){
+  var rawN = normKey(rawText || ''), pr = currentPreset(), n = 0;
+  var chorusBg = pr && pr.sceneB ? {type:'scene', value: pr.sceneB} : null;
+  (song.slides || []).forEach(function(sl){
+    if(sl.semLetra || sl.refrao || sl.mood) return;
+    var txt = normKey((sl.lines || []).map(function(l){ return l.text; }).join(' '));
+    if(!txt) return;
+    var repeated = sl.rep > 1 || (rawN && txt.length >= 14 && countOccurrences(rawN, txt) >= 2);
+    if(!repeated) return;
+    sl.refrao = true; n++;
+    if(chorusBg && !sl.bg) sl.bg = JSON.parse(JSON.stringify(chorusBg));
+  });
+  return n;
+}
 document.getElementById('btnAutoBuild').addEventListener('click', async function(){
   var raw = document.getElementById('rawLyrics').value;
-  if(!raw.trim()){ toast('Falta a letra: busque a música ou cole a letra primeiro.'); return; }
+  var work = slidesHaveWork(editingSong);
+  if(!work && !raw.trim()){ toast('Falta a letra: busque a música ou cole a letra primeiro.'); return; }
   if(!requireTitle()) return;
-  if(editingSong.slides && editingSong.slides.length){
-    var okRef = await confirmDialog('Montar tudo sozinho de novo?', 'Os slides são refeitos a partir da letra do campo e o que você ajustou à mão nesta música (divisão, estilos, tamanhos, fundos) é substituído pela escolha do app. O botão ↶ Desfazer volta.');
+  var keep = work && (!raw.trim() || slidesMatchLyrics(editingSong, raw));
+  if(work && !keep){
+    var okRef = await confirmDialog('Montar tudo sozinho de novo?', 'Os slides que estão na música não parecem ser desta letra do campo. Se continuar, eles são refeitos a partir da letra e o que você ajustou à mão (divisão, estilos, tamanhos, fundos) é substituído pela escolha do app. O botão ↶ Desfazer volta.');
     if(!okRef) return;
   }
   autoSavedIds.add(editingSong.id);
-  completeAutomaticSong(document.getElementById('songTitleInput').value.trim(), raw, 'letra do campo', { stay: true, term: '' });
+  completeAutomaticSong(document.getElementById('songTitleInput').value.trim(), raw, keep ? 'seus slides' : 'letra do campo', { stay: true, term: '', keepSlides: keep });
+});
+document.getElementById('btnAutoRebuild').addEventListener('click', async function(){
+  var raw = document.getElementById('rawLyrics').value;
+  if(!raw.trim()){ toast('Falta a letra no campo: cole ou busque a letra para refazer do zero.'); return; }
+  if(!requireTitle()) return;
+  if(slidesHaveWork(editingSong)){
+    var okRef = await confirmDialog('Refazer do zero?', 'Os slides atuais são jogados fora e refeitos a partir da letra do campo; o que você apagou volta e o que você ajustou à mão (divisão, estilos, tamanhos, fundos) é substituído pela escolha do app. O botão ↶ Desfazer volta.');
+    if(!okRef) return;
+  }
+  autoSavedIds.add(editingSong.id);
+  completeAutomaticSong(document.getElementById('songTitleInput').value.trim(), raw, 'letra do campo', { stay: true, term: '', keepSlides: false });
 });
 /* o ⚡ salva a música na biblioteca (pra "Ir para Exportar" funcionar); se você desfaz/refaz depois, a cópia salva acompanha — assim o Exportar nunca fica com a versão que você desfez */
 var autoSavedIds = new Set();
@@ -4837,7 +4907,7 @@ async function runDiagnostic(setStatus){
   var L = [], wait = function(ms){ return new Promise(function(r){ setTimeout(r, ms || 0); }); };
   function add(x){ L.push(x); }
   var W = 1920, H = 1200, FPS = 24, HOLD = 16;
-  add('=== DIAGNÓSTICO DO PC — Gerador de Slides v49 ===');
+  add('=== DIAGNÓSTICO DO PC — Gerador de Slides v50 ===');
   add('Data: ' + new Date().toLocaleString('pt-BR'));
   var mc = /Chrome\/([\d.]+)/.exec(navigator.userAgent);
   add('Navegador: ' + (mc ? 'Chrome ' + mc[1] : navigator.userAgent));
@@ -6945,7 +7015,7 @@ function claudeBgLabel(bg){
 function buildClaudeRequest(song, userNote){
   var L = [];
   var id = claudeRequestId(song);
-  L.push('=== PEDIDO DO GERADOR DE SLIDES (app v49) ===');
+  L.push('=== PEDIDO DO GERADOR DE SLIDES (app v50) ===');
   L.push('Claude, este pedido vem do app "Gerador de Slides Animados" (vídeos de letra animada para importar no Holyrics; projeto do Dulirio, ministério de louvor). Responda sempre em português do Brasil.');
   L.push('');
   L.push('O QUE FAZER (padrão: o usuário NÃO precisa escrever nada)');
@@ -7548,7 +7618,7 @@ function songFileObject(song){
   /* só a música (nunca a chave do Vagalume nem as outras músicas) */
   var copy = JSON.parse(JSON.stringify(song));
   delete copy.exportSig;   /* v45: "o que já foi gerado" vale só neste aparelho */
-  return { formato: SONG_FILE_FORMAT, versao: 1, app: 'v49', exportadoEm: new Date().toISOString(), musica: copy };
+  return { formato: SONG_FILE_FORMAT, versao: 1, app: 'v50', exportadoEm: new Date().toISOString(), musica: copy };
 }
 function songFileBase(song){ return 'musica-' + folderNameFromTitle(song.title || 'Sem título'); }
 function parseSongFile(data){
